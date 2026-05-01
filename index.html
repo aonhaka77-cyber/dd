@@ -2,225 +2,637 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>가계부 Pro 2026</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>AI 가계부 Pro 2026</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/tesseract.js@v4.0.1/dist/tesseract.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+
     <style>
-        body { font-family: 'Pretendard', sans-serif; -webkit-tap-highlight-color: transparent; letter-spacing: -0.02em; }
-        .safe-area-bottom { padding-bottom: env(safe-area-inset-bottom); }
-        .glass { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); }
-        /* 애니메이션 효과 */
-        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-        .animate-slide-up { animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        :root {
+            --brand: #4F46E5;
+            --bg-main: #F8FAFC;
+            --text-dark: #1E293B;
+        }
+
+        body { 
+            font-family: 'Pretendard', sans-serif; 
+            background-color: var(--bg-main);
+            color: var(--text-dark);
+            -webkit-font-smoothing: antialiased;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        /* 프리미엄 UI 효과 */
+        .glass-header {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(15px) saturate(160%);
+            -webkit-backdrop-filter: blur(15px) saturate(160%);
+            border-bottom: 1px solid rgba(226, 232, 240, 0.6);
+        }
+
+        .shadow-premium { box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.08); }
+        
+        .main-card {
+            background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
+        }
+
+        /* 하단 시트 애니메이션 */
+        .bottom-sheet {
+            transition: transform 0.4s cubic-bezier(0.33, 1, 0.68, 1);
+            border-radius: 2.5rem 2.5rem 0 0;
+        }
+
         /* 스크롤바 숨김 */
-        ::-webkit-scrollbar { display: none; }
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* 애니메이션 */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .list-item-anim { animation: fadeIn 0.4s ease forwards; }
+
+        /* 터치 반응 */
+        .active-push:active { transform: scale(0.96); transition: 0.1s; }
+        
+        /* 로딩 바 */
+        .progress-fill {
+            width: 0%;
+            height: 4px;
+            background: var(--brand);
+            transition: width 0.3s;
+            border-radius: 2px;
+        }
     </style>
 </head>
-<body class="bg-[#F8F9FB] text-slate-900">
+<body>
 
-    <div class="bg-indigo-600 pt-12 pb-16 px-6 rounded-b-[3rem] shadow-2xl shadow-indigo-100">
-        <div class="max-w-md mx-auto">
-            <div class="flex justify-between items-start mb-6">
-                <div>
-                    <h2 class="text-indigo-100 text-sm font-medium opacity-90 mb-1">2026년 전체 잔액</h2>
-                    <h1 id="total-balance" class="text-4xl font-bold text-white tabular-nums">0원</h1>
-                </div>
-                <div class="bg-indigo-500/30 p-3 rounded-2xl">
-                    <span class="text-2xl">💳</span>
-                </div>
+    <header class="sticky top-0 z-40 glass-header px-6 py-5">
+        <div class="max-w-xl mx-auto flex justify-between items-center">
+            <div>
+                <p id="header-date" class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-0.5">2026년 3월</p>
+                <h1 class="text-xl font-black text-slate-800">나의 AI 가계부</h1>
             </div>
-            
-            <div class="grid grid-cols-2 gap-3 mt-8">
-                <div class="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10">
-                    <p class="text-indigo-100 text-xs mb-1">이번 달 수입</p>
-                    <p id="total-income" class="text-white font-bold text-lg">+0원</p>
-                </div>
-                <div class="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10">
-                    <p class="text-indigo-100 text-xs mb-1">이번 달 지출</p>
-                    <p id="total-expense" class="text-white font-bold text-lg">-0원</p>
-                </div>
+            <div class="flex gap-2">
+                <button onclick="App.ui.toggleCategoryModal()" class="w-10 h-10 flex items-center justify-center bg-white border border-slate-200 rounded-xl shadow-sm text-slate-500 active-push">
+                    <i data-lucide="tag" class="w-5 h-5"></i>
+                </button>
+                <button onclick="App.ui.toggleStats()" class="w-10 h-10 flex items-center justify-center bg-indigo-50 rounded-xl text-indigo-600 active-push">
+                    <i data-lucide="pie-chart" class="w-5 h-5"></i>
+                </button>
             </div>
         </div>
-    </div>
+    </header>
 
-    <main class="max-w-md mx-auto px-6 -mt-8">
-        <div class="flex items-center justify-between mb-4 px-1">
-            <h3 class="font-bold text-lg flex items-center gap-2">
-                최신 내역 <span id="item-count" class="text-xs font-medium text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">0</span>
-            </h3>
-            <button onclick="refreshData()" class="text-indigo-600 text-sm font-semibold">새로고침</button>
-        </div>
+    <section class="max-w-xl mx-auto p-6">
+        <div class="main-card rounded-[2.5rem] p-8 text-white relative overflow-hidden shadow-premium">
+            <div class="relative z-10">
+                <div class="flex justify-between items-start mb-10">
+                    <div>
+                        <span class="text-slate-400 text-[10px] font-bold uppercase tracking-widest">현재 총 잔액</span>
+                        <h2 id="total-balance" class="text-4xl font-black mt-1 tabular-nums">0원</h2>
+                    </div>
+                    <button onclick="App.actions.setBudget()" class="bg-indigo-500/20 px-3 py-1.5 rounded-xl border border-indigo-500/30 active-push">
+                        <span id="budget-info" class="text-[10px] font-black text-indigo-300">예산 설정</span>
+                    </button>
+                </div>
 
-        <div id="ledger-list" class="space-y-4 pb-32">
-            <div class="animate-pulse flex space-x-4 bg-white p-6 rounded-3xl">
-                <div class="rounded-full bg-slate-100 h-12 w-12"></div>
-                <div class="flex-1 space-y-3 py-1">
-                    <div class="h-2 bg-slate-100 rounded"></div>
-                    <div class="h-2 bg-slate-100 rounded w-5/6"></div>
+                <div class="w-full bg-white/5 h-2 rounded-full overflow-hidden mb-8 border border-white/5">
+                    <div id="budget-bar" class="h-full bg-indigo-500 transition-all duration-1000" style="width: 0%"></div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-6">
+                    <div>
+                        <p class="text-slate-500 text-[10px] font-bold uppercase mb-1">이번 달 수입</p>
+                        <p id="total-income" class="text-xl font-bold text-emerald-400">+0</p>
+                    </div>
+                    <div>
+                        <p class="text-slate-500 text-[10px] font-bold uppercase mb-1">이번 달 지출</p>
+                        <p id="total-expense" class="text-xl font-bold text-rose-400">-0</p>
+                    </div>
                 </div>
             </div>
+            <div class="absolute -right-16 -top-16 w-48 h-48 bg-indigo-600/20 rounded-full blur-3xl"></div>
+        </div>
+    </section>
+
+    <section class="max-w-xl mx-auto px-6 mb-6">
+        <div class="flex gap-2">
+            <div class="flex-1 relative">
+                <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300"></i>
+                <input type="text" id="search-bar" oninput="App.actions.filter()" placeholder="내역 검색..." 
+                    class="w-full pl-11 pr-4 py-4 bg-white border border-slate-100 rounded-2xl shadow-sm outline-none font-medium text-sm focus:ring-2 focus:ring-indigo-500/20 transition-all">
+            </div>
+            <button onclick="App.actions.exportCSV()" class="px-4 bg-white border border-slate-100 rounded-2xl text-slate-400 active-push">
+                <i data-lucide="download" class="w-5 h-5"></i>
+            </button>
+        </div>
+    </section>
+
+    <main class="max-w-xl mx-auto px-6 pb-32">
+        <div id="ledger-list" class="space-y-4">
+            <div class="h-20 bg-white rounded-[1.8rem] opacity-50 border border-slate-50"></div>
+            <div class="h-20 bg-white rounded-[1.8rem] opacity-30 border border-slate-50"></div>
         </div>
     </main>
 
-    <div class="fixed bottom-0 left-0 right-0 p-6 pointer-events-none flex justify-center z-40">
-        <button onclick="openModal()" class="pointer-events-auto bg-slate-900 text-white px-8 py-4 rounded-full shadow-2xl flex items-center gap-3 active:scale-95 transition-transform">
-            <span class="text-xl font-light">+</span>
-            <span class="font-bold tracking-tight">내역 추가</span>
+    <div class="fixed bottom-8 left-0 right-0 z-40 px-6 flex justify-center items-center gap-4 pointer-events-none">
+        <label class="pointer-events-auto w-16 h-16 bg-white border-2 border-slate-100 rounded-2xl shadow-2xl flex items-center justify-center active-push cursor-pointer">
+            <input type="file" accept="image/*" class="hidden" onchange="App.actions.handleOCR(this)">
+            <i data-lucide="camera" class="w-7 h-7 text-indigo-600"></i>
+        </label>
+        
+        <button onclick="App.ui.openModal()" class="pointer-events-auto flex-1 max-w-[240px] h-16 bg-slate-900 text-white rounded-2xl shadow-2xl shadow-slate-200 font-bold flex items-center justify-center gap-3 active-push">
+            <i data-lucide="plus" class="w-6 h-6"></i>
+            <span class="text-lg">내역 추가하기</span>
         </button>
     </div>
 
-    <div id="modal" class="hidden fixed inset-0 z-50 overflow-hidden">
-        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onclick="closeModal()"></div>
-        <div class="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2.5rem] p-8 pb-12 animate-slide-up max-w-md mx-auto">
+    <div id="ai-loading" class="hidden fixed inset-0 z-[60] bg-slate-900/90 backdrop-blur-md flex flex-col items-center justify-center text-white px-10 text-center">
+        <div class="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-6"></div>
+        <h3 class="text-2xl font-black mb-2">영수증 분석 중</h3>
+        <p class="text-slate-400 text-sm mb-6">AI가 금액과 날짜를 읽고 있습니다.</p>
+        <div class="w-full max-w-xs bg-slate-800 h-1 rounded-full overflow-hidden">
+            <div id="ocr-bar" class="progress-fill"></div>
+        </div>
+    </div>
+
+    <div id="input-modal" class="hidden fixed inset-0 z-50 flex items-end justify-center">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="App.ui.closeModal()"></div>
+        <div class="relative w-full max-w-xl bg-white bottom-sheet p-8 pb-12 shadow-2xl">
             <div class="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-8"></div>
             
-            <div class="flex bg-slate-100 p-1 rounded-2xl mb-8">
-                <button id="type-expense" onclick="setType('expense')" class="flex-1 py-3.5 rounded-xl font-bold text-sm bg-white text-indigo-600 shadow-sm transition-all">지출 (-)</button>
-                <button id="type-income" onclick="setType('income')" class="flex-1 py-3.5 rounded-xl font-bold text-sm text-slate-500 transition-all">수입 (+)</button>
+            <div class="flex justify-between items-center mb-8">
+                <h2 id="modal-title" class="text-2xl font-black text-slate-800">내역 기록</h2>
+                <div class="flex bg-slate-100 p-1 rounded-xl">
+                    <button id="tab-ex" onclick="App.actions.changeType('ex')" class="px-5 py-2 rounded-lg font-bold text-xs">지출</button>
+                    <button id="tab-in" onclick="App.actions.changeType('in')" class="px-5 py-2 rounded-lg font-bold text-xs">수입</button>
+                </div>
             </div>
 
-            <div class="space-y-6">
-                <div class="relative">
-                    <label class="text-[11px] font-bold text-slate-400 absolute top-3 left-4 uppercase">Date</label>
-                    <input type="date" id="in-date" class="w-full pt-8 pb-3 px-4 bg-slate-50 rounded-2xl border-none focus:ring-2 focus:ring-indigo-500 outline-none font-medium">
-                </div>
-                <div class="relative">
-                    <label class="text-[11px] font-bold text-slate-400 absolute top-3 left-4 uppercase">Description</label>
-                    <input type="text" id="in-desc" placeholder="내역을 입력하세요" class="w-full pt-8 pb-3 px-4 bg-slate-50 rounded-2xl border-none focus:ring-2 focus:ring-indigo-500 outline-none font-medium">
-                </div>
-                <div class="relative pb-4">
-                    <label class="text-[11px] font-bold text-slate-400 absolute top-3 left-4 uppercase">Amount</label>
-                    <input type="number" id="in-amount" placeholder="0" inputmode="numeric" class="w-full pt-8 pb-3 px-4 bg-slate-50 rounded-2xl border-none focus:ring-2 focus:ring-indigo-500 outline-none text-2xl font-bold text-indigo-600">
-                </div>
-                
-                <button onclick="saveEntry()" class="w-full py-5 bg-indigo-600 text-white rounded-[1.5rem] font-bold text-lg active:bg-indigo-800 shadow-xl shadow-indigo-100 transition-all">
-                    기록 저장하기
-                </button>
+            <div class="mb-6">
+                <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">카테고리 선택</label>
+                <div id="cat-selector" class="flex gap-3 overflow-x-auto hide-scroll pb-2">
+                    </div>
             </div>
+
+            <div class="space-y-4">
+                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-500 transition-all">
+                    <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">날짜</label>
+                    <input type="date" id="f-date" class="w-full bg-transparent outline-none font-bold text-lg">
+                </div>
+                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-500 transition-all">
+                    <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">내용</label>
+                    <input type="text" id="f-desc" placeholder="어디에 쓰셨나요?" class="w-full bg-transparent outline-none font-bold text-lg">
+                </div>
+                <div class="bg-slate-50 p-5 rounded-2xl border border-slate-100 focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-500 transition-all">
+                    <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">금액</label>
+                    <div class="flex items-center gap-2">
+                        <span class="text-2xl font-black text-slate-300">₩</span>
+                        <input type="text" id="f-amount" oninput="App.actions.formatCurrency(this)" placeholder="0" inputmode="numeric" 
+                            class="w-full bg-transparent outline-none font-black text-3xl text-indigo-600 tabular-nums">
+                    </div>
+                </div>
+
+                <div class="flex gap-3 pt-6">
+                    <button onclick="App.ui.closeModal()" class="flex-1 py-5 bg-slate-100 text-slate-500 rounded-2xl font-bold active-push">취소</button>
+                    <button id="btn-save" onclick="App.actions.save()" class="flex-[2] py-5 bg-slate-900 text-white rounded-2xl font-bold shadow-xl active-push">저장하기</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="cat-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-6">
+        <div class="absolute inset-0 bg-slate-900/80 backdrop-blur-md" onclick="App.ui.toggleCategoryModal()"></div>
+        <div class="relative w-full max-w-sm bg-white rounded-[2.5rem] p-8 shadow-2xl">
+            <h3 class="text-xl font-black mb-6 flex items-center gap-2">
+                <i data-lucide="tag" class="w-5 h-5 text-indigo-500"></i>
+                카테고리 관리
+            </h3>
+            
+            <div id="cat-manage-list" class="space-y-3 max-h-60 overflow-y-auto hide-scroll mb-6">
+                </div>
+
+            <div class="border-t border-slate-100 pt-6">
+                <p class="text-[10px] font-black text-slate-400 uppercase mb-4 tracking-widest">새 카테고리 추가</p>
+                <div class="flex gap-2 mb-4">
+                    <input type="text" id="new-cat-icon" placeholder="😊" class="w-14 p-3 bg-slate-50 rounded-xl text-center outline-none border border-slate-100">
+                    <input type="text" id="new-cat-name" placeholder="이름" class="flex-1 p-3 bg-slate-50 rounded-xl outline-none border border-slate-100 font-bold">
+                </div>
+                <button onclick="App.actions.addCategory()" class="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold active-push transition-all">추가하기</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="stats-view" class="hidden fixed inset-0 z-[70] bg-white overflow-y-auto">
+        <header class="p-6 border-b flex justify-between items-center sticky top-0 bg-white/80 backdrop-blur-md">
+            <h2 class="text-xl font-black">소비 패턴 분석</h2>
+            <button onclick="App.ui.toggleStats()" class="p-2 bg-slate-100 rounded-full active-push">
+                <i data-lucide="x" class="w-5 h-5 text-slate-600"></i>
+            </button>
+        </header>
+        <div class="p-8 max-w-xl mx-auto">
+            <div class="bg-slate-50 p-8 rounded-[3rem] shadow-inner mb-10">
+                <canvas id="main-chart"></canvas>
+            </div>
+            <div id="ranking-list" class="space-y-4"></div>
         </div>
     </div>
 
     <script>
-        // Supabase 연결 설정
-        const SB_URL = 'https://lahgmjaoskqyzegiqrms.supabase.co';
-        const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxhaGdtamFvc2txeXplZ2lxcm1zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1MjM5NTEsImV4cCI6MjA5MzA5OTk1MX0.EBP3BzqXAQKP_ubtCCC7vWkl4Gi4B3KNc8-SpEBsV5k';
-        const sb = supabase.createClient(SB_URL, SB_KEY);
+        /**
+         * Namespace: App
+         * 모든 기능의 충돌을 방지하기 위한 통합 객체
+         */
+        const App = {
+            // [설정]
+            config: {
+                url: 'https://lahgmjaoskqyzegiqrms.supabase.co',
+                key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxhaGdtamFvc2txeXplZ2lxcm1zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1MjM5NTEsImV4cCI6MjA5MzA5OTk1MX0.EBP3BzqXAQKP_ubtCCC7vWkl4Gi4B3KNc8-SpEBsV5k'
+            },
 
-        let entryType = 'expense';
+            // [상태 데이터]
+            state: {
+                sb: null,
+                items: [],
+                displayItems: [],
+                categories: [
+                    { id: 'c1', name: '식비', icon: '🍔' },
+                    { id: 'c2', name: '생활', icon: '🏠' },
+                    { id: 'c3', name: '교통', icon: '🚌' },
+                    { id: 'c4', name: '쇼핑', icon: '🛒' },
+                    { id: 'c5', name: '수입', icon: '💰' }
+                ],
+                selectedCat: 'c1',
+                type: 'ex', // 'ex' 지출, 'in' 수입
+                editId: null,
+                budget: 1000000,
+                chart: null
+            },
 
-        window.onload = () => {
-            document.getElementById('in-date').valueAsDate = new Date();
-            refreshData();
+            // [초기화]
+            async init() {
+                try {
+                    // Supabase 클라이언트 초기화
+                    this.state.sb = supabase.createClient(this.config.url, this.config.key);
+                    
+                    // 로컬 데이터 복구 (카테고리, 예산)
+                    const localCats = localStorage.getItem('sb_ledger_cats');
+                    if (localCats) this.state.categories = JSON.parse(localCats);
+                    
+                    const localBudget = localStorage.getItem('sb_ledger_budget');
+                    if (localBudget) this.state.budget = parseInt(localBudget);
+
+                    document.getElementById('header-date').innerText = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long' });
+                    document.getElementById('f-date').valueAsDate = new Date();
+                    
+                    lucide.createIcons();
+                    await this.actions.fetch();
+                    this.ui.renderCatSelectors();
+                } catch (e) {
+                    console.error("초기화 실패:", e);
+                }
+            },
+
+            // [기능 함수군]
+            actions: {
+                async fetch() {
+                    const { data, error } = await App.state.sb
+                        .from('ledger')
+                        .select('*')
+                        .order('date', { ascending: false })
+                        .order('id', { ascending: false });
+
+                    if (error) {
+                        console.error("데이터 로드 에러:", error);
+                        return;
+                    }
+
+                    App.state.items = data;
+                    App.state.displayItems = data;
+                    App.ui.renderList();
+                },
+
+                async save() {
+                    const date = document.getElementById('f-date').value;
+                    const desc = document.getElementById('f-desc').value.trim();
+                    const amtRaw = document.getElementById('f-amount').value.replace(/,/g, '');
+                    let amount = parseInt(amtRaw);
+
+                    if (!desc || isNaN(amount)) return alert("정확한 내역과 금액을 입력해주세요.");
+
+                    // 지출/수입 부호 처리
+                    amount = App.state.type === 'ex' ? -Math.abs(amount) : Math.abs(amount);
+                    
+                    // 카테고리 정보 결합 (이모지 포함 설명 저장)
+                    const cat = App.state.categories.find(c => c.id === App.state.selectedCat);
+                    const finalDesc = `${cat.icon} ${desc}`;
+
+                    const payload = { date, description: finalDesc, amount };
+                    
+                    let res;
+                    if (App.state.editId) {
+                        res = await App.state.sb.from('ledger').update(payload).eq('id', App.state.editId);
+                    } else {
+                        res = await App.state.sb.from('ledger').insert([payload]);
+                    }
+
+                    if (res.error) {
+                        alert("저장 중 오류 발생: " + res.error.message);
+                    } else {
+                        App.ui.closeModal();
+                        await App.actions.fetch();
+                    }
+                },
+
+                async delete(id) {
+                    if (!confirm("이 내역을 영구적으로 삭제하시겠습니까?")) return;
+                    const { error } = await App.state.sb.from('ledger').delete().eq('id', id);
+                    if (!error) await App.actions.fetch();
+                },
+
+                async handleOCR(input) {
+                    if (!input.files || !input.files[0]) return;
+                    const loader = document.getElementById('ai-loading');
+                    const bar = document.getElementById('ocr-bar');
+                    loader.classList.remove('hidden');
+                    bar.style.width = '10%';
+
+                    try {
+                        const res = await Tesseract.recognize(input.files[0], 'kor+eng', {
+                            logger: m => { if(m.status === 'recognizing text') bar.style.width = `${m.progress * 100}%`; }
+                        });
+                        
+                        const text = res.data.text;
+                        const amounts = text.replace(/,/g, '').match(/\d{3,}/g) || [];
+                        const maxAmt = amounts.length > 0 ? Math.max(...amounts.map(Number)) : 0;
+                        const dateMatch = text.match(/\d{4}[-./]\d{2}[-./]\d{2}/);
+
+                        App.ui.openModal();
+                        if (dateMatch) document.getElementById('f-date').value = dateMatch[0].replace(/[./]/g, '-');
+                        document.getElementById('f-desc').value = "영수증 인식 내역";
+                        document.getElementById('f-amount').value = maxAmt.toLocaleString();
+                        
+                        if(window.navigator.vibrate) window.navigator.vibrate(40);
+                    } catch (e) {
+                        alert("인식 실패. 밝은 곳에서 다시 촬영해주세요.");
+                    } finally {
+                        loader.classList.add('hidden');
+                        input.value = "";
+                    }
+                },
+
+                addCategory() {
+                    const icon = document.getElementById('new-cat-icon').value.trim() || '📄';
+                    const name = document.getElementById('new-cat-name').value.trim();
+                    if(!name) return alert("카테고리 이름을 입력하세요.");
+
+                    const newObj = { id: 'c' + Date.now(), name, icon };
+                    App.state.categories.push(newObj);
+                    localStorage.setItem('sb_ledger_cats', JSON.stringify(App.state.categories));
+                    
+                    App.ui.renderCatSelectors();
+                    App.ui.renderCatManageList();
+                    document.getElementById('new-cat-name').value = '';
+                },
+
+                removeCategory(id) {
+                    if(App.state.categories.length <= 1) return alert("최소 1개의 카테고리는 필요합니다.");
+                    App.state.categories = App.state.categories.filter(c => c.id !== id);
+                    localStorage.setItem('sb_ledger_cats', JSON.stringify(App.state.categories));
+                    App.ui.renderCatSelectors();
+                    App.ui.renderCatManageList();
+                },
+
+                setBudget() {
+                    const val = prompt("목표 월 예산을 입력하세요.", App.state.budget);
+                    if (val && !isNaN(val)) {
+                        App.state.budget = parseInt(val);
+                        localStorage.setItem('sb_ledger_budget', App.state.budget);
+                        App.ui.renderList();
+                    }
+                },
+
+                filter() {
+                    const q = document.getElementById('search-bar').value.toLowerCase();
+                    App.state.displayItems = App.state.items.filter(i => i.description.toLowerCase().includes(q));
+                    App.ui.renderList();
+                },
+
+                changeType(t) {
+                    App.state.type = t;
+                    const ex = document.getElementById('tab-ex');
+                    const inc = document.getElementById('tab-in');
+                    const amt = document.getElementById('f-amount');
+
+                    if (t === 'ex') {
+                        ex.className = "px-5 py-2 rounded-lg font-bold text-xs bg-white text-rose-500 shadow-sm";
+                        inc.className = "px-5 py-2 rounded-lg font-bold text-xs text-slate-500";
+                        amt.classList.replace('text-indigo-600', 'text-rose-500');
+                    } else {
+                        inc.className = "px-5 py-2 rounded-lg font-bold text-xs bg-white text-indigo-600 shadow-sm";
+                        ex.className = "px-5 py-2 rounded-lg font-bold text-xs text-slate-500";
+                        amt.classList.replace('text-rose-500', 'text-indigo-600');
+                    }
+                },
+
+                formatCurrency(inp) {
+                    let v = inp.value.replace(/[^0-9]/g, '');
+                    if (v) inp.value = parseInt(v).toLocaleString();
+                },
+
+                exportCSV() {
+                    if (App.state.items.length === 0) return;
+                    let csv = "날짜,내역,금액\n";
+                    App.state.items.forEach(r => csv += `${r.date},${r.description},${r.amount}\n`);
+                    const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `가계부_백업_${new Date().toISOString().slice(0,10)}.csv`;
+                    a.click();
+                }
+            },
+
+            // [UI 렌더링 함수군]
+            ui: {
+                renderList() {
+                    const container = document.getElementById('ledger-list');
+                    container.innerHTML = '';
+                    
+                    let total = 0, inc = 0, exp = 0;
+                    let lastDate = "";
+
+                    App.state.displayItems.forEach((item, idx) => {
+                        total += item.amount;
+                        if (item.amount > 0) inc += item.amount;
+                        else exp += Math.abs(item.amount);
+
+                        if (item.date !== lastDate) {
+                            container.insertAdjacentHTML('beforeend', `<p class="text-[10px] font-black text-slate-400 uppercase mt-8 mb-3 ml-2 tracking-widest">${item.date}</p>`);
+                            lastDate = item.date;
+                        }
+
+                        const isNeg = item.amount < 0;
+                        const parts = item.description.split(' ');
+                        const icon = parts[0].length <= 2 ? parts[0] : '📄';
+                        const desc = parts.slice(1).join(' ') || item.description;
+
+                        const html = `
+                            <div class="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100 flex justify-between items-center list-item-anim group active:scale-[0.98] transition-all" style="animation-delay: ${idx * 0.05}s">
+                                <div class="flex items-center gap-4 flex-1" onclick="App.ui.openEdit(${JSON.stringify(item).replace(/"/g, '&quot;')})">
+                                    <div class="w-12 h-12 rounded-2xl flex items-center justify-center bg-slate-50 text-xl shadow-inner">${icon}</div>
+                                    <div>
+                                        <h4 class="font-bold text-slate-800 text-[15px] leading-tight">${desc}</h4>
+                                        <p class="text-[9px] font-bold text-slate-400 mt-0.5">${isNeg ? '지출' : '수입'}</p>
+                                    </div>
+                                </div>
+                                <div class="text-right flex flex-col items-end gap-1">
+                                    <p class="font-black text-[17px] tabular-nums ${isNeg ? 'text-slate-900' : 'text-indigo-600'}">
+                                        ${isNeg ? '-' : '+'}${Math.abs(item.amount).toLocaleString()}
+                                    </p>
+                                    <button onclick="App.actions.delete(${item.id})" class="opacity-0 group-hover:opacity-100 text-[9px] font-black text-rose-300 uppercase hover:text-rose-500 transition-all">삭제</button>
+                                </div>
+                            </div>
+                        `;
+                        container.insertAdjacentHTML('beforeend', html);
+                    });
+
+                    document.getElementById('total-balance').innerText = total.toLocaleString() + '원';
+                    document.getElementById('total-income').innerText = '+' + inc.toLocaleString();
+                    document.getElementById('total-expense').innerText = '-' + exp.toLocaleString();
+                    
+                    // 예산 시각화
+                    const percent = Math.min(Math.round((exp / App.state.budget) * 100), 100);
+                    document.getElementById('budget-bar').style.width = percent + '%';
+                    document.getElementById('budget-info').innerText = `지출 ${percent}% (목표 ${App.state.budget.toLocaleString()})`;
+                    
+                    lucide.createIcons();
+                },
+
+                renderCatSelectors() {
+                    const container = document.getElementById('cat-selector');
+                    container.innerHTML = '';
+                    App.state.categories.forEach(cat => {
+                        const isSel = App.state.selectedCat === cat.id;
+                        const btn = `
+                            <button onclick="App.ui.selectCat('${cat.id}')" 
+                                class="flex-shrink-0 px-5 py-3 rounded-2xl border transition-all flex items-center gap-2
+                                ${isSel ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg' : 'bg-white border-slate-100 text-slate-500'}">
+                                <span class="text-lg">${cat.icon}</span>
+                                <span class="text-xs font-bold">${cat.name}</span>
+                            </button>
+                        `;
+                        container.insertAdjacentHTML('beforeend', btn);
+                    });
+                },
+
+                renderCatManageList() {
+                    const container = document.getElementById('cat-manage-list');
+                    container.innerHTML = '';
+                    App.state.categories.forEach(cat => {
+                        container.insertAdjacentHTML('beforeend', `
+                            <div class="flex justify-between items-center bg-slate-50 p-4 rounded-2xl">
+                                <div class="flex items-center gap-3">
+                                    <span class="text-xl">${cat.icon}</span>
+                                    <span class="font-bold text-slate-700 text-sm">${cat.name}</span>
+                                </div>
+                                <button onclick="App.actions.removeCategory('${cat.id}')" class="p-2 text-rose-300 hover:text-rose-500 active-push">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        `);
+                    });
+                    lucide.createIcons();
+                },
+
+                selectCat(id) {
+                    App.state.selectedCat = id;
+                    this.renderCatSelectors();
+                },
+
+                openModal() {
+                    App.state.editId = null;
+                    document.getElementById('modal-title').innerText = "내역 추가";
+                    document.getElementById('f-desc').value = "";
+                    document.getElementById('f-amount').value = "";
+                    document.getElementById('input-modal').classList.remove('hidden');
+                    App.actions.changeType('ex');
+                },
+
+                closeModal() {
+                    document.getElementById('input-modal').classList.add('hidden');
+                },
+
+                openEdit(item) {
+                    App.state.editId = item.id;
+                    document.getElementById('modal-title').innerText = "내역 수정";
+                    document.getElementById('f-date').value = item.date;
+                    const parts = item.description.split(' ');
+                    document.getElementById('f-desc').value = parts.length > 1 ? parts.slice(1).join(' ') : item.description;
+                    document.getElementById('f-amount').value = Math.abs(item.amount).toLocaleString();
+                    App.actions.changeType(item.amount < 0 ? 'ex' : 'in');
+                    document.getElementById('input-modal').classList.remove('hidden');
+                },
+
+                toggleCategoryModal() {
+                    const m = document.getElementById('cat-modal');
+                    m.classList.toggle('hidden');
+                    if(!m.classList.contains('hidden')) this.renderCatManageList();
+                },
+
+                toggleStats() {
+                    const v = document.getElementById('stats-view');
+                    v.classList.toggle('hidden');
+                    if (!v.classList.contains('hidden')) this.renderChart();
+                },
+
+                renderChart() {
+                    const ctx = document.getElementById('main-chart').getContext('2d');
+                    const expenses = App.state.items.filter(i => i.amount < 0);
+                    const stats = {};
+                    
+                    expenses.forEach(e => {
+                        const icon = e.description.split(' ')[0];
+                        stats[icon] = (stats[icon] || 0) + Math.abs(e.amount);
+                    });
+
+                    if (App.state.chart) App.state.chart.destroy();
+                    App.state.chart = new Chart(ctx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: Object.keys(stats),
+                            datasets: [{
+                                data: Object.values(stats),
+                                backgroundColor: ['#6366f1', '#fb7185', '#34d399', '#fbbf24', '#a78bfa'],
+                                borderWidth: 0
+                            }]
+                        },
+                        options: { cutout: '75%', plugins: { legend: { position: 'bottom' } } }
+                    });
+
+                    const ranking = document.getElementById('ranking-list');
+                    ranking.innerHTML = '';
+                    Object.entries(stats).sort((a,b)=>b[1]-a[1]).forEach(([icon, val]) => {
+                        ranking.insertAdjacentHTML('beforeend', `
+                            <div class="flex justify-between items-center bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+                                <div class="flex items-center gap-3">
+                                    <span class="text-xl">${icon}</span>
+                                    <span class="font-bold text-slate-700">카테고리 지출</span>
+                                </div>
+                                <span class="font-black text-indigo-600">${val.toLocaleString()}원</span>
+                            </div>
+                        `);
+                    });
+                }
+            }
         };
 
-        // 데이터 동기화
-        async function refreshData() {
-            const { data, error } = await sb.from('ledger').select('*').order('date', { ascending: false }).order('id', { ascending: false });
-            if (error) return alert('연결 오류: ' + error.message);
-            renderUI(data);
-        }
-
-        // UI 렌더링 (잔액 계산 + 리스트)
-        function renderUI(list) {
-            const listContainer = document.getElementById('ledger-list');
-            let total = 0, income = 0, expense = 0;
-            listContainer.innerHTML = '';
-
-            list.forEach(item => {
-                total += item.amount;
-                if(item.amount > 0) income += item.amount;
-                else expense += Math.abs(item.amount);
-
-                const isNeg = item.amount < 0;
-                const emoji = isNeg ? '💸' : '💰';
-                
-                listContainer.innerHTML += `
-                    <div class="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100 flex justify-between items-center group active:scale-95 transition-transform">
-                        <div class="flex items-center gap-4">
-                            <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-xl bg-slate-50">${emoji}</div>
-                            <div>
-                                <h4 class="font-bold text-slate-800 text-[15px]">${item.description}</h4>
-                                <p class="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">${item.date.replace(/-/g, '.')}</p>
-                            </div>
-                        </div>
-                        <div class="text-right flex flex-col items-end gap-1">
-                            <span class="font-bold text-[16px] ${isNeg ? 'text-slate-900' : 'text-emerald-600'}">
-                                ${isNeg ? '-' : '+'}${Math.abs(item.amount).toLocaleString()}원
-                            </span>
-                            <button onclick="deleteEntry(${item.id})" class="text-[10px] text-red-300 font-bold hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">삭제</button>
-                        </div>
-                    </div>
-                `;
-            });
-
-            // 대시보드 업데이트
-            document.getElementById('total-balance').innerText = total.toLocaleString() + '원';
-            document.getElementById('total-income').innerText = '+' + income.toLocaleString() + '원';
-            document.getElementById('total-expense').innerText = '-' + expense.toLocaleString() + '원';
-            document.getElementById('item-count').innerText = list.length;
-
-            if(list.length === 0) {
-                listContainer.innerHTML = '<div class="py-20 text-center text-slate-300 font-medium text-sm">기록된 내역이 없습니다.</div>';
-            }
-        }
-
-        // 모달 관리
-        function openModal() { 
-            document.getElementById('modal').classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
-        }
-        function closeModal() { 
-            document.getElementById('modal').classList.add('hidden');
-            document.body.style.overflow = 'auto';
-        }
-
-        function setType(type) {
-            entryType = type;
-            const exBtn = document.getElementById('type-expense');
-            const inBtn = document.getElementById('type-income');
-            const amtInp = document.getElementById('in-amount');
-
-            if(type === 'expense') {
-                exBtn.className = "flex-1 py-3.5 rounded-xl font-bold text-sm bg-white text-indigo-600 shadow-sm";
-                inBtn.className = "flex-1 py-3.5 rounded-xl font-bold text-sm text-slate-500";
-                amtInp.classList.replace('text-emerald-600', 'text-indigo-600');
-            } else {
-                inBtn.className = "flex-1 py-3.5 rounded-xl font-bold text-sm bg-white text-emerald-600 shadow-sm";
-                exBtn.className = "flex-1 py-3.5 rounded-xl font-bold text-sm text-slate-500";
-                amtInp.classList.replace('text-indigo-600', 'text-emerald-600');
-            }
-        }
-
-        // 저장 로직
-        async function saveEntry() {
-            const date = document.getElementById('in-date').value;
-            const description = document.getElementById('in-desc').value.trim();
-            let amount = parseInt(document.getElementById('in-amount').value);
-
-            if(!description || isNaN(amount)) return alert('내용과 금액을 모두 입력해주세요!');
-            
-            amount = entryType === 'expense' ? -Math.abs(amount) : Math.abs(amount);
-
-            const { error } = await sb.from('ledger').insert([{ date, description, amount }]);
-
-            if (error) alert('저장 실패: ' + error.message);
-            else {
-                document.getElementById('in-desc').value = '';
-                document.getElementById('in-amount').value = '';
-                closeModal();
-                refreshData();
-            }
-        }
-
-        // 삭제 로직
-        async function deleteEntry(id) {
-            if(!confirm('정말 삭제할까요?')) return;
-            const { error } = await sb.from('ledger').delete().eq('id', id);
-            if (error) alert('삭제 실패');
-            else refreshData();
-        }
+        // 앱 기동
+        document.addEventListener('DOMContentLoaded', () => App.init());
     </script>
 </body>
 </html>
