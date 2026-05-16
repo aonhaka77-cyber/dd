@@ -122,6 +122,10 @@
                 <h1 class="text-xl font-black text-slate-800">나의 AI 가계부</h1>
             </div>
             <div class="flex gap-2">
+                <button onclick="App.ui.toggleSystemPanel()" class="relative w-10 h-10 flex items-center justify-center bg-white border border-slate-200 rounded-xl shadow-sm text-slate-500 active-push">
+                    <i data-lucide="bell" class="w-5 h-5"></i>
+                    <span id="system-log-dot" class="hidden absolute -right-1 -top-1 w-3 h-3 bg-rose-500 border-2 border-white rounded-full"></span>
+                </button>
                 <button onclick="App.ui.toggleCategoryModal()" class="w-10 h-10 flex items-center justify-center bg-white border border-slate-200 rounded-xl shadow-sm text-slate-500 active-push">
                     <i data-lucide="tag" class="w-5 h-5"></i>
                 </button>
@@ -309,6 +313,40 @@
         </div>
     </div>
 
+    <div id="system-panel" class="hidden fixed inset-0 z-[70] bg-white overflow-y-auto">
+        <header class="p-6 border-b flex justify-between items-center sticky top-0 bg-white/90 backdrop-blur-md z-10">
+            <div>
+                <p class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1">System Center</p>
+                <h2 class="text-xl font-black text-slate-800">시스템 알림</h2>
+            </div>
+            <button onclick="App.ui.toggleSystemPanel()" class="p-2 bg-slate-100 rounded-full active-push">
+                <i data-lucide="x" class="w-5 h-5 text-slate-600"></i>
+            </button>
+        </header>
+
+        <div class="max-w-xl mx-auto p-6 space-y-8">
+            <section>
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-sm font-black text-slate-700">알림 로그</h3>
+                    <button onclick="App.actions.clearSystemLogs()" class="text-[11px] font-bold text-slate-400 active-push">비우기</button>
+                </div>
+                <div id="system-log-list" class="space-y-3"></div>
+            </section>
+
+            <section class="border-t border-slate-100 pt-8">
+                <h3 class="text-sm font-black text-slate-700 mb-4">업데이트 공지 작성</h3>
+                <div class="space-y-3">
+                    <input id="notice-title" type="text" maxlength="40" placeholder="공지 제목"
+                        class="w-full p-4 rounded-2xl bg-slate-50 border border-slate-100 outline-none font-bold focus:bg-white focus:ring-2 focus:ring-indigo-500/20">
+                    <textarea id="notice-body" rows="4" maxlength="240" placeholder="업데이트 내용을 적어주세요."
+                        class="w-full p-4 rounded-2xl bg-slate-50 border border-slate-100 outline-none text-sm font-medium resize-none focus:bg-white focus:ring-2 focus:ring-indigo-500/20"></textarea>
+                    <button onclick="App.actions.publishNotice()" class="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold active-push">공지 등록</button>
+                </div>
+                <div id="notice-list" class="space-y-3 mt-5"></div>
+            </section>
+        </div>
+    </div>
+
     <div id="stats-view" class="hidden fixed inset-0 z-[70] bg-white overflow-y-auto">
         <header class="p-6 border-b flex justify-between items-center sticky top-0 bg-white/80 backdrop-blur-md">
             <h2 class="text-xl font-black">소비 패턴 분석</h2>
@@ -353,7 +391,10 @@
                 type: 'ex', // 'ex' 지출, 'in' 수입
                 editId: null,
                 budget: 1000000,
-                chart: null
+                chart: null,
+                systemLogs: [],
+                notices: [],
+                systemDbAvailable: true
             },
 
             // [초기화]
@@ -369,14 +410,19 @@
                     const localBudget = localStorage.getItem('sb_ledger_budget');
                     if (localBudget) this.state.budget = parseInt(localBudget);
 
+                    this.state.systemLogs = JSON.parse(localStorage.getItem('sb_system_logs') || '[]');
+                    this.state.notices = JSON.parse(localStorage.getItem('sb_update_notices') || '[]');
+
                     await this.actions.loadBudgetSetting();
 
                     document.getElementById('header-date').innerText = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long' });
                     document.getElementById('f-date').valueAsDate = new Date();
                     
                     lucide.createIcons();
+                    await this.actions.fetchSystemCenter();
                     await this.actions.fetch();
                     this.ui.renderCatSelectors();
+                    this.ui.renderSystemCenter();
                 } catch (e) {
                     console.error("초기화 실패:", e);
                 }
@@ -399,6 +445,159 @@
                     App.state.items = data;
                     App.state.displayItems = data;
                     App.ui.renderList();
+                },
+
+                isMissingTableError(error) {
+                    return error && (
+                        error.code === 'PGRST205' ||
+                        error.code === '42P01' ||
+                        (error.message && (
+                            error.message.includes('Could not find the table') ||
+                            error.message.includes('relation') && error.message.includes('does not exist')
+                        ))
+                    );
+                },
+
+                normalizeLog(row) {
+                    return {
+                        id: row.id,
+                        message: row.message,
+                        type: row.type || 'info',
+                        time: row.created_at || row.time || new Date().toISOString()
+                    };
+                },
+
+                normalizeNotice(row) {
+                    return {
+                        id: row.id,
+                        title: row.title,
+                        body: row.body,
+                        time: row.created_at || row.time || new Date().toISOString()
+                    };
+                },
+
+                async fetchSystemCenter() {
+                    if (!App.state.systemDbAvailable) return;
+
+                    try {
+                        const [logsRes, noticesRes] = await Promise.all([
+                            App.state.sb.from('system_logs').select('id,message,type,created_at').order('created_at', { ascending: false }).limit(80),
+                            App.state.sb.from('update_notices').select('id,title,body,created_at').order('created_at', { ascending: false }).limit(30)
+                        ]);
+
+                        if (logsRes.error || noticesRes.error) {
+                            const error = logsRes.error || noticesRes.error;
+                            if (App.actions.isMissingTableError(error)) App.state.systemDbAvailable = false;
+                            throw error;
+                        }
+
+                        App.state.systemLogs = (logsRes.data || []).map(App.actions.normalizeLog);
+                        App.state.notices = (noticesRes.data || []).map(App.actions.normalizeNotice);
+                        localStorage.setItem('sb_system_logs', JSON.stringify(App.state.systemLogs));
+                        localStorage.setItem('sb_update_notices', JSON.stringify(App.state.notices));
+                    } catch (e) {
+                        console.warn('시스템 알림 DB 로드 실패, 로컬 저장소를 사용합니다:', e);
+                        App.state.systemDbAvailable = false;
+                    }
+                },
+
+                async addSystemLog(message, type = 'info') {
+                    const log = {
+                        id: Date.now(),
+                        message,
+                        type,
+                        time: new Date().toISOString()
+                    };
+                    App.state.systemLogs.unshift(log);
+                    App.state.systemLogs = App.state.systemLogs.slice(0, 80);
+                    localStorage.setItem('sb_system_logs', JSON.stringify(App.state.systemLogs));
+                    App.ui.renderSystemCenter();
+
+                    if (App.state.systemDbAvailable) {
+                        const { data, error } = await App.state.sb
+                            .from('system_logs')
+                            .insert([{ message, type }])
+                            .select('id,message,type,created_at')
+                            .single();
+
+                        if (error) {
+                            if (App.actions.isMissingTableError(error)) App.state.systemDbAvailable = false;
+                            console.warn('시스템 로그 DB 저장 실패:', error);
+                            return;
+                        }
+
+                        App.state.systemLogs = [App.actions.normalizeLog(data), ...App.state.systemLogs.filter(item => item.id !== log.id)].slice(0, 80);
+                        localStorage.setItem('sb_system_logs', JSON.stringify(App.state.systemLogs));
+                        App.ui.renderSystemCenter();
+                    }
+                },
+
+                async clearSystemLogs() {
+                    App.state.systemLogs = [];
+                    localStorage.setItem('sb_system_logs', '[]');
+                    App.ui.renderSystemCenter();
+
+                    if (App.state.systemDbAvailable) {
+                        const { error } = await App.state.sb.from('system_logs').delete().not('id', 'is', null);
+                        if (error) {
+                            if (App.actions.isMissingTableError(error)) App.state.systemDbAvailable = false;
+                            console.warn('시스템 로그 DB 삭제 실패:', error);
+                        }
+                    }
+                },
+
+                async publishNotice() {
+                    const titleEl = document.getElementById('notice-title');
+                    const bodyEl = document.getElementById('notice-body');
+                    const title = titleEl.value.trim();
+                    const body = bodyEl.value.trim();
+                    if (!title || !body) return App.ui.showToast('공지 제목과 내용을 입력하세요.', 2500, false);
+
+                    const notice = {
+                        id: Date.now(),
+                        title,
+                        body,
+                        time: new Date().toISOString()
+                    };
+                    App.state.notices.unshift(notice);
+                    App.state.notices = App.state.notices.slice(0, 30);
+                    localStorage.setItem('sb_update_notices', JSON.stringify(App.state.notices));
+                    titleEl.value = '';
+                    bodyEl.value = '';
+                    await App.actions.addSystemLog(`업데이트 공지 등록: ${title}`, 'notice');
+
+                    if (App.state.systemDbAvailable) {
+                        const { data, error } = await App.state.sb
+                            .from('update_notices')
+                            .insert([{ title, body }])
+                            .select('id,title,body,created_at')
+                            .single();
+
+                        if (error) {
+                            if (App.actions.isMissingTableError(error)) App.state.systemDbAvailable = false;
+                            console.warn('업데이트 공지 DB 저장 실패:', error);
+                        } else {
+                            App.state.notices = [App.actions.normalizeNotice(data), ...App.state.notices.filter(item => item.id !== notice.id)].slice(0, 30);
+                            localStorage.setItem('sb_update_notices', JSON.stringify(App.state.notices));
+                        }
+                    }
+
+                    App.ui.showToast('업데이트 공지가 등록되었습니다.', 2500, false);
+                    App.ui.renderSystemCenter();
+                },
+
+                async removeNotice(id) {
+                    App.state.notices = App.state.notices.filter(notice => notice.id !== id);
+                    localStorage.setItem('sb_update_notices', JSON.stringify(App.state.notices));
+                    if (App.state.systemDbAvailable) {
+                        const { error } = await App.state.sb.from('update_notices').delete().eq('id', id);
+                        if (error) {
+                            if (App.actions.isMissingTableError(error)) App.state.systemDbAvailable = false;
+                            console.warn('업데이트 공지 DB 삭제 실패:', error);
+                        }
+                    }
+                    await App.actions.addSystemLog('업데이트 공지를 삭제했습니다.', 'info');
+                    App.ui.renderSystemCenter();
                 },
 
                 async save() {
@@ -896,6 +1095,81 @@
                     }
                 },
 
+                toggleSystemPanel() {
+                    const panel = document.getElementById('system-panel');
+                    if (panel.classList.contains('hidden')) {
+                        App.ui.closeAllModals();
+                        panel.classList.remove('hidden');
+                        this.renderSystemCenter();
+                        document.body.classList.add('overflow-hidden');
+                    } else {
+                        panel.classList.add('hidden');
+                        document.body.classList.remove('overflow-hidden');
+                    }
+                },
+
+                renderSystemCenter() {
+                    const logList = document.getElementById('system-log-list');
+                    const noticeList = document.getElementById('notice-list');
+                    const dot = document.getElementById('system-log-dot');
+                    if (!logList || !noticeList) return;
+
+                    const typeStyle = {
+                        info: ['bg-slate-100 text-slate-500', 'info'],
+                        success: ['bg-emerald-100 text-emerald-600', 'check'],
+                        error: ['bg-rose-100 text-rose-600', 'alert'],
+                        notice: ['bg-indigo-100 text-indigo-600', '공지']
+                    };
+                    const formatTime = (value) => new Date(value).toLocaleString('ko-KR', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+
+                    logList.innerHTML = App.state.systemLogs.length ? '' : `
+                        <div class="p-5 rounded-2xl bg-slate-50 border border-slate-100 text-sm font-bold text-slate-400 text-center">
+                            아직 기록된 시스템 알림이 없습니다.
+                        </div>
+                    `;
+                    App.state.systemLogs.forEach(log => {
+                        const [badgeClass, badgeText] = typeStyle[log.type] || typeStyle.info;
+                        const message = App.ui.escapeHTML(log.message);
+                        logList.insertAdjacentHTML('beforeend', `
+                            <div class="p-4 rounded-2xl bg-white border border-slate-100 shadow-sm">
+                                <div class="flex items-start justify-between gap-3">
+                                    <p class="text-sm font-bold text-slate-700 leading-relaxed">${message}</p>
+                                    <span class="shrink-0 px-2 py-1 rounded-full text-[10px] font-black ${badgeClass}">${badgeText}</span>
+                                </div>
+                                <p class="text-[10px] font-bold text-slate-400 mt-2">${formatTime(log.time)}</p>
+                            </div>
+                        `);
+                    });
+
+                    noticeList.innerHTML = App.state.notices.length ? '' : `
+                        <div class="p-5 rounded-2xl bg-slate-50 border border-slate-100 text-sm font-bold text-slate-400 text-center">
+                            등록된 업데이트 공지가 없습니다.
+                        </div>
+                    `;
+                    App.state.notices.forEach(notice => {
+                        const title = App.ui.escapeHTML(notice.title);
+                        const body = App.ui.escapeHTML(notice.body);
+                        noticeList.insertAdjacentHTML('beforeend', `
+                            <article class="p-5 rounded-2xl bg-white border border-slate-100 shadow-sm">
+                                <div class="flex items-start justify-between gap-3 mb-2">
+                                    <h4 class="font-black text-slate-800">${title}</h4>
+                                    <button onclick="App.actions.removeNotice(${notice.id})" class="shrink-0 text-[10px] font-black text-rose-300 active-push">삭제</button>
+                                </div>
+                                <p class="text-sm text-slate-500 leading-relaxed whitespace-pre-wrap">${body}</p>
+                                <p class="text-[10px] font-bold text-slate-400 mt-3">${formatTime(notice.time)}</p>
+                            </article>
+                        `);
+                    });
+
+                    if (dot) dot.classList.toggle('hidden', App.state.systemLogs.length === 0);
+                    lucide.createIcons();
+                },
+
                 renderChart() {
                     const ctx = document.getElementById('main-chart').getContext('2d');
                     const expenses = App.state.items.filter(i => i.amount < 0);
@@ -960,7 +1234,7 @@
                 },
 
                 closeAllModals() {
-                    const ids = ['input-modal','cat-modal','budget-modal','export-modal','stats-view'];
+                    const ids = ['input-modal','cat-modal','budget-modal','export-modal','stats-view','system-panel'];
                     ids.forEach(id => {
                         const el = document.getElementById(id);
                         if (el && !el.classList.contains('hidden')) el.classList.add('hidden');
@@ -975,7 +1249,18 @@
                     el.value = parseInt(raw).toLocaleString('ko-KR');
                 },
 
-                showToast(message, ms = 3000) {
+                escapeHTML(value) {
+                    return String(value || '').replace(/[&<>"']/g, char => ({
+                        '&': '&amp;',
+                        '<': '&lt;',
+                        '>': '&gt;',
+                        '"': '&quot;',
+                        "'": '&#39;'
+                    }[char]));
+                },
+
+                showToast(message, ms = 3000, addToLog = true) {
+                    if (addToLog) App.actions.addSystemLog(message, 'info');
                     const t = document.getElementById('toast');
                     t.innerText = message;
                     t.classList.remove('hidden');
