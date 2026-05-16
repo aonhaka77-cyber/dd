@@ -98,6 +98,21 @@
             transition: all 260ms ease;
         }
         .toast.show { transform: translateY(0); opacity: 1; }
+
+        /* Modal common styling */
+        .modal-backdrop { position: absolute; inset:0; background: rgba(2,6,23,0.6); backdrop-filter: blur(6px); }
+        .modal-inner { max-height: 85vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+
+        /* Mobile adjustments */
+        @media (max-width: 640px) {
+            .main-card.improved { padding: 1.5rem; border-radius: 1rem; }
+            #budget-modal .bottom-sheet, #input-modal .bottom-sheet { width: 100%; border-radius: 1.2rem 1.2rem 0 0; max-height: 85vh; }
+            #budget-modal .relative, #input-modal .relative { max-height: 75vh; }
+            #export-modal .relative { width: calc(100% - 32px); max-width: none; border-radius: 1rem; }
+            #cat-modal .relative { width: calc(100% - 32px); max-width: none; }
+            #budget-input, #f-amount { font-size: 1.25rem; }
+            .fixed.bottom-8 { bottom: env(safe-area-inset-bottom, 8px); }
+        }
     </style>
 </head>
 <body>
@@ -551,11 +566,29 @@
                 async applyBudgetFromModal() {
                     const raw = (document.getElementById('budget-input').value || '').replace(/[^0-9]/g, '');
                     if (!raw) return App.ui.showToast('유효한 숫자를 입력하세요.');
+                    const oldBudget = App.state.budget;
                     App.state.budget = parseInt(raw);
                     try {
-                        await App.actions.saveBudgetSetting();
+                        const res = await App.actions.saveBudgetSetting();
+
+                        // 기록: DB가 가능하면 ledger 테이블에 변경 이력으로 남김
+                        const note = `🔖 예산 변경 ${oldBudget.toLocaleString()} → ${App.state.budget.toLocaleString()}`;
+                        if (App.state.dbAvailable) {
+                            try {
+                                await App.state.sb.from('ledger').insert([{ date: new Date().toISOString().slice(0,10), description: note, amount: 0 }]);
+                            } catch (e) {
+                                console.warn('예산 변경 이력 DB 기록 실패:', e);
+                            }
+                        } else {
+                            // 로컬 히스토리에 저장
+                            const h = JSON.parse(localStorage.getItem('sb_budget_history') || '[]');
+                            h.push({ date: new Date().toISOString().slice(0,10), note, budget: App.state.budget });
+                            localStorage.setItem('sb_budget_history', JSON.stringify(h));
+                        }
+
                         App.ui.closeBudgetModal();
                         App.ui.showToast('목표 예산이 저장되었습니다.');
+                        await App.actions.fetch();
                         App.ui.renderList();
                     } catch (e) {
                         App.ui.showToast('목표 저장에 실패했습니다.');
@@ -783,6 +816,14 @@
                     lucide.createIcons();
                 },
 
+                toggleCategoryModal() {
+                    App.actions.toggleCategoryModal();
+                },
+
+                toggleStats() {
+                    App.actions.toggleStats();
+                },
+
                 selectCat(id) {
                     App.state.selectedCat = id;
                     this.renderCatSelectors();
@@ -812,19 +853,35 @@
                     document.getElementById('f-desc').value = parts.length > 1 ? parts.slice(1).join(' ') : item.description;
                     document.getElementById('f-amount').value = Math.abs(item.amount).toLocaleString();
                     App.actions.changeType(item.amount < 0 ? 'ex' : 'in');
+                    App.ui.closeAllModals();
                     document.getElementById('input-modal').classList.remove('hidden');
+                    document.body.classList.add('overflow-hidden');
                 },
 
                 toggleCategoryModal() {
                     const m = document.getElementById('cat-modal');
-                    m.classList.toggle('hidden');
-                    if(!m.classList.contains('hidden')) this.renderCatManageList();
+                    if (m.classList.contains('hidden')) {
+                        App.ui.closeAllModals();
+                        m.classList.remove('hidden');
+                        this.renderCatManageList();
+                        document.body.classList.add('overflow-hidden');
+                    } else {
+                        m.classList.add('hidden');
+                        document.body.classList.remove('overflow-hidden');
+                    }
                 },
 
                 toggleStats() {
                     const v = document.getElementById('stats-view');
-                    v.classList.toggle('hidden');
-                    if (!v.classList.contains('hidden')) this.renderChart();
+                    if (v.classList.contains('hidden')) {
+                        App.ui.closeAllModals();
+                        v.classList.remove('hidden');
+                        this.renderChart();
+                        document.body.classList.add('overflow-hidden');
+                    } else {
+                        v.classList.add('hidden');
+                        document.body.classList.remove('overflow-hidden');
+                    }
                 },
 
                 renderChart() {
