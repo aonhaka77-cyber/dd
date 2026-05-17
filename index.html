@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>AI 가계부 Pro 2026</title>
+    <title>모아</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -14,14 +14,14 @@
 
     <style>
         :root {
-            --brand: #4F46E5;
-            --bg-main: #F8FAFC;
+            --brand: #2563EB;
+            --bg-main: #F1F5F9;
             --text-dark: #1E293B;
         }
 
         body { 
             font-family: 'Pretendard', sans-serif; 
-            background-color: var(--bg-main);
+            background: linear-gradient(180deg, #EEF2F7 0%, #F8FAFC 42%, #FFFFFF 100%);
             color: var(--text-dark);
             -webkit-font-smoothing: antialiased;
             padding-bottom: env(safe-area-inset-bottom);
@@ -29,10 +29,11 @@
 
         /* 프리미엄 UI 효과 */
         .glass-header {
-            background: rgba(255, 255, 255, 0.85);
+            background: rgba(255, 255, 255, 0.9);
             backdrop-filter: blur(15px) saturate(160%);
             -webkit-backdrop-filter: blur(15px) saturate(160%);
             border-bottom: 1px solid rgba(226, 232, 240, 0.6);
+            box-shadow: 0 10px 30px -24px rgba(15, 23, 42, 0.55);
         }
 
         .shadow-premium { box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.08); }
@@ -41,9 +42,27 @@
             background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
         }
         .main-card.improved {
-            background: linear-gradient(180deg, rgba(8,10,20,0.95), rgba(13,16,26,0.95));
+            background: linear-gradient(135deg, #0F172A 0%, #1E293B 58%, #334155 100%);
             padding: 2.5rem;
             border-radius: 1.5rem;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        .main-card.improved::after {
+            content: "";
+            position: absolute;
+            inset: auto -20% -35% 25%;
+            height: 170px;
+            background: linear-gradient(90deg, rgba(37,99,235,0.28), rgba(16,185,129,0.18));
+            transform: rotate(-8deg);
+            filter: blur(18px);
+            pointer-events: none;
+        }
+
+        .metric-tile {
+            background: rgba(255,255,255,0.07);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 1.25rem;
+            padding: 0.9rem;
         }
 
         /* 하단 시트 애니메이션 */
@@ -70,6 +89,40 @@
             background: var(--brand);
             transition: width 0.3s;
             border-radius: 2px;
+        }
+
+        .ledger-date-label {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin: 1.75rem 0 0.75rem;
+            color: #94A3B8;
+            font-size: 0.68rem;
+            font-weight: 900;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+        .ledger-date-label::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background: #E2E8F0;
+        }
+
+        .ledger-card {
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 12px 28px -24px rgba(15, 23, 42, 0.45);
+        }
+        .ledger-card::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 1rem;
+            bottom: 1rem;
+            width: 4px;
+            border-radius: 999px;
+            background: var(--ledger-accent, #6366f1);
         }
 
         /* 예산 바 상태 - 목표%에 따른 그라데이션 */
@@ -115,11 +168,11 @@
 </head>
 <body>
 
-    <header class="sticky top-0 z-40 glass-header px-6 py-5">
+    <header class="sticky top-0 z-40 glass-header px-5 sm:px-6 py-4">
         <div class="max-w-xl mx-auto flex justify-between items-center">
             <div>
-                <p id="header-date" class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-0.5">2026년 3월</p>
-                <h1 class="text-xl font-black text-slate-800">나의 AI 가계부</h1>
+                <p id="header-date" class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-0.5">오늘 날짜</p>
+                <h1 class="text-xl font-black text-slate-800">모아</h1>
             </div>
             <div class="flex gap-2">
                 <button onclick="App.ui.toggleSystemPanel()" class="relative w-10 h-10 flex items-center justify-center bg-white border border-slate-200 rounded-xl shadow-sm text-slate-500 active-push">
@@ -136,10 +189,10 @@
         </div>
     </header>
 
-    <section class="max-w-xl mx-auto p-6">
+    <section class="max-w-xl mx-auto p-5 sm:p-6">
         <div class="main-card improved rounded-[2.5rem] p-8 text-white relative overflow-hidden shadow-premium">
             <div class="relative z-10">
-                    <div class="flex justify-between items-start gap-4 mb-10">
+                    <div class="flex justify-between items-start gap-4 mb-8">
                     <div class="min-w-0 flex-1">
                         <span class="text-slate-400 text-[10px] font-bold uppercase tracking-widest">현재 총 잔액</span>
                         <h2 id="total-balance" class="text-3xl sm:text-4xl font-black mt-1 tabular-nums break-words leading-tight">0원</h2>
@@ -149,31 +202,30 @@
                     </button>
                 </div>
 
-                <div class="w-full bg-white/5 h-2 rounded-full overflow-hidden mb-8 border border-white/5">
+                <div class="w-full bg-white/10 h-2 rounded-full overflow-hidden mb-6 border border-white/5">
                     <div id="budget-bar" class="budget-bar ok" style="width: 0%"></div>
                 </div>
                 
                 <div class="grid grid-cols-2 gap-6">
-                    <div>
+                    <div class="metric-tile">
                         <p class="text-slate-500 text-[10px] font-bold uppercase mb-1">이번 달 수입</p>
                         <p id="total-income" class="text-xl font-bold text-emerald-400">+0</p>
                     </div>
-                    <div>
+                    <div class="metric-tile">
                         <p class="text-slate-500 text-[10px] font-bold uppercase mb-1">이번 달 지출</p>
                         <p id="total-expense" class="text-xl font-bold text-rose-400">-0</p>
                     </div>
                 </div>
             </div>
-            <div class="absolute -right-16 -top-16 w-48 h-48 bg-indigo-600/20 rounded-full blur-3xl"></div>
         </div>
     </section>
 
-    <section class="max-w-xl mx-auto px-6 mb-6">
+    <section class="max-w-xl mx-auto px-5 sm:px-6 mb-6">
             <div class="flex gap-2">
             <div class="flex-1 relative">
                 <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300"></i>
                 <input type="text" id="search-bar" oninput="App.actions.filter()" placeholder="내역 검색..." 
-                    class="w-full pl-11 pr-4 py-4 bg-white border border-slate-100 rounded-2xl shadow-sm outline-none font-medium text-sm focus:ring-2 focus:ring-indigo-500/20 transition-all">
+                    class="w-full pl-11 pr-4 py-4 bg-white border border-slate-100 rounded-2xl shadow-sm outline-none font-bold text-sm focus:ring-2 focus:ring-indigo-500/20 transition-all">
             </div>
             <button onclick="App.actions.showExportDialog()" class="px-4 bg-white border border-slate-100 rounded-2xl text-slate-400 active-push">
                 <i data-lucide="download" class="w-5 h-5"></i>
@@ -181,7 +233,14 @@
         </div>
     </section>
 
-    <main class="max-w-xl mx-auto px-6 pb-44">
+    <main class="max-w-xl mx-auto px-5 sm:px-6 pb-44">
+        <div class="flex items-end justify-between mb-3">
+            <div>
+                <p class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1">Ledger</p>
+                <h3 class="text-lg font-black text-slate-800">최근 내역</h3>
+            </div>
+            <p id="ledger-count" class="text-[11px] font-black text-slate-400">0건</p>
+        </div>
         <div id="ledger-list" class="space-y-4">
             <div class="h-20 bg-white rounded-[1.8rem] opacity-50 border border-slate-50"></div>
             <div class="h-20 bg-white rounded-[1.8rem] opacity-30 border border-slate-50"></div>
@@ -324,7 +383,7 @@
             </button>
         </header>
 
-        <div class="max-w-xl mx-auto p-6 space-y-8">
+        <div class="max-w-xl mx-auto p-4 sm:p-6 space-y-8 pb-24">
             <section>
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-sm font-black text-slate-700">알림 로그</h3>
@@ -338,7 +397,7 @@
                 <div class="space-y-3">
                     <input id="notice-title" type="text" maxlength="40" placeholder="공지 제목"
                         class="w-full p-4 rounded-2xl bg-slate-50 border border-slate-100 outline-none font-bold focus:bg-white focus:ring-2 focus:ring-indigo-500/20">
-                    <textarea id="notice-body" rows="4" maxlength="240" placeholder="업데이트 내용을 적어주세요."
+                    <textarea id="notice-body" rows="5" maxlength="600" placeholder="업데이트 내용을 적어주세요."
                         class="w-full p-4 rounded-2xl bg-slate-50 border border-slate-100 outline-none text-sm font-medium resize-none focus:bg-white focus:ring-2 focus:ring-indigo-500/20"></textarea>
                     <button onclick="App.actions.publishNotice()" class="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold active-push">공지 등록</button>
                 </div>
@@ -347,18 +406,40 @@
         </div>
     </div>
 
-    <div id="stats-view" class="hidden fixed inset-0 z-[70] bg-white overflow-y-auto">
-        <header class="p-6 border-b flex justify-between items-center sticky top-0 bg-white/80 backdrop-blur-md">
-            <h2 class="text-xl font-black">소비 패턴 분석</h2>
+    <div id="notice-detail-modal" class="hidden fixed inset-0 z-[80] flex items-end sm:items-center justify-center p-0 sm:p-6">
+        <div class="absolute inset-0 bg-slate-900/70 backdrop-blur-sm" onclick="App.ui.closeNoticeDetail()"></div>
+        <div class="relative w-full max-w-xl bg-white rounded-t-[2rem] sm:rounded-[2rem] p-6 shadow-2xl max-h-[88vh] overflow-y-auto">
+            <div class="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-6 sm:hidden"></div>
+            <div id="notice-detail-content"></div>
+        </div>
+    </div>
+
+    <div id="stats-view" class="hidden fixed inset-0 z-[70] bg-slate-50 overflow-y-auto">
+        <header class="p-5 sm:p-6 border-b flex justify-between items-center sticky top-0 bg-white/90 backdrop-blur-md z-10">
+            <div>
+                <p class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1">Monthly Insight</p>
+                <h2 class="text-xl font-black">소비 분석</h2>
+            </div>
             <button onclick="App.ui.toggleStats()" class="p-2 bg-slate-100 rounded-full active-push">
                 <i data-lucide="x" class="w-5 h-5 text-slate-600"></i>
             </button>
         </header>
-        <div class="p-8 max-w-xl mx-auto">
-            <div class="bg-slate-50 p-8 rounded-[3rem] shadow-inner mb-10">
-                <canvas id="main-chart"></canvas>
+        <div class="p-5 sm:p-6 max-w-xl mx-auto pb-24">
+            <div id="stats-summary" class="grid grid-cols-3 gap-3 mb-5"></div>
+            <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm mb-5">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-sm font-black text-slate-700">카테고리 비중</h3>
+                    <span id="stats-month-label" class="text-[10px] font-black text-slate-400"></span>
+                </div>
+                <div class="relative mx-auto max-w-[280px]">
+                    <canvas id="main-chart"></canvas>
+                </div>
             </div>
-            <div id="ranking-list" class="space-y-4"></div>
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-sm font-black text-slate-700">지출 랭킹</h3>
+                <span class="text-[10px] font-black text-slate-400">이번 달 기준</span>
+            </div>
+            <div id="ranking-list" class="space-y-3"></div>
         </div>
     </div>
 
@@ -394,7 +475,9 @@
                 chart: null,
                 systemLogs: [],
                 notices: [],
-                systemDbAvailable: true
+                systemDbAvailable: true,
+                openLogId: null,
+                selectedNoticeId: null
             },
 
             // [초기화]
@@ -415,7 +498,12 @@
 
                     await this.actions.loadBudgetSetting();
 
-                    document.getElementById('header-date').innerText = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long' });
+                    document.getElementById('header-date').innerText = new Intl.DateTimeFormat('ko-KR', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        weekday: 'short'
+                    }).format(new Date());
                     document.getElementById('f-date').valueAsDate = new Date();
                     
                     lucide.createIcons();
@@ -463,15 +551,22 @@
                         id: row.id,
                         message: row.message,
                         type: row.type || 'info',
+                        meta: row.meta || null,
                         time: row.created_at || row.time || new Date().toISOString()
                     };
                 },
 
                 normalizeNotice(row) {
+                    let comments = row.comments || [];
+                    if (typeof comments === 'string') {
+                        try { comments = JSON.parse(comments); } catch (e) { comments = []; }
+                    }
                     return {
                         id: row.id,
                         title: row.title,
                         body: row.body,
+                        likes: Number(row.likes || 0),
+                        comments: Array.isArray(comments) ? comments : [],
                         time: row.created_at || row.time || new Date().toISOString()
                     };
                 },
@@ -481,8 +576,8 @@
 
                     try {
                         const [logsRes, noticesRes] = await Promise.all([
-                            App.state.sb.from('system_logs').select('id,message,type,created_at').order('created_at', { ascending: false }).limit(80),
-                            App.state.sb.from('update_notices').select('id,title,body,created_at').order('created_at', { ascending: false }).limit(30)
+                            App.state.sb.from('system_logs').select('*').order('created_at', { ascending: false }).limit(80),
+                            App.state.sb.from('update_notices').select('*').order('created_at', { ascending: false }).limit(30)
                         ]);
 
                         if (logsRes.error || noticesRes.error) {
@@ -501,11 +596,12 @@
                     }
                 },
 
-                async addSystemLog(message, type = 'info') {
+                async addSystemLog(message, type = 'info', meta = null) {
                     const log = {
                         id: Date.now(),
                         message,
                         type,
+                        meta,
                         time: new Date().toISOString()
                     };
                     App.state.systemLogs.unshift(log);
@@ -516,8 +612,8 @@
                     if (App.state.systemDbAvailable) {
                         const { data, error } = await App.state.sb
                             .from('system_logs')
-                            .insert([{ message, type }])
-                            .select('id,message,type,created_at')
+                            .insert([{ message, type, meta }])
+                            .select('*')
                             .single();
 
                         if (error) {
@@ -557,6 +653,8 @@
                         id: Date.now(),
                         title,
                         body,
+                        likes: 0,
+                        comments: [],
                         time: new Date().toISOString()
                     };
                     App.state.notices.unshift(notice);
@@ -569,8 +667,8 @@
                     if (App.state.systemDbAvailable) {
                         const { data, error } = await App.state.sb
                             .from('update_notices')
-                            .insert([{ title, body }])
-                            .select('id,title,body,created_at')
+                            .insert([{ title, body, likes: 0, comments: [] }])
+                            .select('*')
                             .single();
 
                         if (error) {
@@ -584,6 +682,48 @@
 
                     App.ui.showToast('업데이트 공지가 등록되었습니다.', 2500, false);
                     App.ui.renderSystemCenter();
+                },
+
+                async syncNotice(notice) {
+                    localStorage.setItem('sb_update_notices', JSON.stringify(App.state.notices));
+                    if (!App.state.systemDbAvailable) return;
+
+                    const { error } = await App.state.sb
+                        .from('update_notices')
+                        .update({ likes: notice.likes || 0, comments: notice.comments || [] })
+                        .eq('id', notice.id);
+
+                    if (error) {
+                        if (App.actions.isMissingTableError(error)) App.state.systemDbAvailable = false;
+                        console.warn('공지 반응 DB 저장 실패:', error);
+                    }
+                },
+
+                async toggleNoticeLike(id) {
+                    const notice = App.state.notices.find(item => String(item.id) === String(id));
+                    if (!notice) return;
+                    notice.likes = Number(notice.likes || 0) + 1;
+                    App.ui.renderSystemCenter();
+                    App.ui.renderNoticeDetail();
+                    await App.actions.syncNotice(notice);
+                },
+
+                async addNoticeComment(id) {
+                    const notice = App.state.notices.find(item => String(item.id) === String(id));
+                    const input = document.getElementById('notice-comment-input');
+                    const body = input ? input.value.trim() : '';
+                    if (!notice || !body) return;
+
+                    notice.comments = Array.isArray(notice.comments) ? notice.comments : [];
+                    notice.comments.push({
+                        id: Date.now(),
+                        body,
+                        time: new Date().toISOString()
+                    });
+                    input.value = '';
+                    App.ui.renderSystemCenter();
+                    App.ui.renderNoticeDetail();
+                    await App.actions.syncNotice(notice);
                 },
 
                 async removeNotice(id) {
@@ -761,24 +901,14 @@
                     try {
                         const res = await App.actions.saveBudgetSetting();
 
-                        // 기록: DB가 가능하면 ledger 테이블에 변경 이력으로 남김
                         const note = `🔖 예산 변경 ${oldBudget.toLocaleString()} → ${App.state.budget.toLocaleString()}`;
-                        if (App.state.dbAvailable) {
-                            try {
-                                await App.state.sb.from('ledger').insert([{ date: new Date().toISOString().slice(0,10), description: note, amount: 0 }]);
-                            } catch (e) {
-                                console.warn('예산 변경 이력 DB 기록 실패:', e);
-                            }
-                        } else {
-                            // 로컬 히스토리에 저장
-                            const h = JSON.parse(localStorage.getItem('sb_budget_history') || '[]');
-                            h.push({ date: new Date().toISOString().slice(0,10), note, budget: App.state.budget });
-                            localStorage.setItem('sb_budget_history', JSON.stringify(h));
-                        }
+                        await App.actions.addSystemLog(note, 'budget', {
+                            before: oldBudget,
+                            after: App.state.budget
+                        });
 
                         App.ui.closeBudgetModal();
-                        App.ui.showToast('목표 예산이 저장되었습니다.');
-                        await App.actions.fetch();
+                        App.ui.showToast('목표 예산이 저장되었습니다.', 3000, false);
                         App.ui.renderList();
                     } catch (e) {
                         App.ui.showToast('목표 저장에 실패했습니다.');
@@ -905,44 +1035,77 @@
                     const container = document.getElementById('ledger-list');
                     container.innerHTML = '';
                     
-                    let total = 0, inc = 0, exp = 0;
+                    const now = new Date();
+                    const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                    const allItems = App.state.items || [];
+                    const monthlyItems = allItems.filter(item => String(item.date || '').slice(0, 7) === currentMonthKey);
+                    const total = allItems.reduce((sum, item) => sum + (item.amount || 0), 0);
+                    const inc = monthlyItems.filter(item => item.amount > 0).reduce((sum, item) => sum + item.amount, 0);
+                    const exp = monthlyItems.filter(item => item.amount < 0).reduce((sum, item) => sum + Math.abs(item.amount), 0);
                     let lastDate = "";
 
                     App.state.displayItems.forEach((item, idx) => {
-                        total += item.amount;
-                        if (item.amount > 0) inc += item.amount;
-                        else exp += Math.abs(item.amount);
-
                         if (item.date !== lastDate) {
-                            container.insertAdjacentHTML('beforeend', `<p class="text-[10px] font-black text-slate-400 uppercase mt-8 mb-3 ml-2 tracking-widest">${item.date}</p>`);
+                            const dateText = new Date(item.date).toLocaleDateString('ko-KR', {
+                                month: 'long',
+                                day: 'numeric',
+                                weekday: 'short'
+                            });
+                            container.insertAdjacentHTML('beforeend', `<p class="ledger-date-label">${dateText}</p>`);
                             lastDate = item.date;
                         }
 
                         const isNeg = item.amount < 0;
                         const parts = item.description.split(' ');
                         const icon = parts[0].length <= 2 ? parts[0] : '📄';
-                        const desc = parts.slice(1).join(' ') || item.description;
+                        const desc = App.ui.escapeHTML(parts.slice(1).join(' ') || item.description);
+                        const typeText = isNeg ? '지출' : '수입';
+                        const accent = isNeg ? '#fb7185' : '#6366f1';
+                        const amountColor = isNeg ? 'text-rose-500 bg-rose-50' : 'text-indigo-600 bg-indigo-50';
+                        const amountPrefix = isNeg ? '-' : '+';
 
                         const html = `
-                            <div class="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100 flex justify-between items-center list-item-anim group active:scale-[0.98] transition-all" style="animation-delay: ${idx * 0.05}s">
-                                <div class="flex items-center gap-4 flex-1" onclick="App.ui.openEdit(${JSON.stringify(item).replace(/"/g, '&quot;')})">
-                                    <div class="w-12 h-12 rounded-2xl flex items-center justify-center bg-slate-50 text-xl shadow-inner">${icon}</div>
-                                    <div>
-                                        <h4 class="font-bold text-slate-800 text-[15px] leading-tight">${desc}</h4>
-                                        <p class="text-[9px] font-bold text-slate-400 mt-0.5">${isNeg ? '지출' : '수입'}</p>
+                            <div class="ledger-card bg-white p-4 sm:p-5 rounded-3xl shadow-sm border border-slate-100 list-item-anim active:scale-[0.98] transition-all" style="animation-delay: ${idx * 0.04}s; --ledger-accent: ${accent};">
+                                <div class="flex items-center gap-3">
+                                    <button onclick="App.ui.openEdit(${JSON.stringify(item).replace(/"/g, '&quot;')})" class="min-w-0 flex-1 flex items-center gap-3 text-left active-push">
+                                        <div class="shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center bg-slate-50 text-xl shadow-inner">${icon}</div>
+                                        <div class="min-w-0 flex-1">
+                                            <div class="flex items-center gap-2 mb-1">
+                                                <span class="px-2 py-0.5 rounded-full bg-slate-100 text-[10px] font-black text-slate-500">${typeText}</span>
+                                                <span class="text-[10px] font-bold text-slate-400 tabular-nums">#${item.id}</span>
+                                            </div>
+                                            <h4 class="font-black text-slate-800 text-[15px] leading-tight truncate">${desc}</h4>
+                                        </div>
+                                    </button>
+
+                                    <div class="shrink-0 flex flex-col items-end gap-2">
+                                        <p class="px-3 py-1.5 rounded-2xl font-black text-[15px] tabular-nums ${amountColor}">
+                                            ${amountPrefix}${Math.abs(item.amount).toLocaleString()}
+                                        </p>
+                                        <button onclick="App.actions.delete(${item.id})" class="w-9 h-9 rounded-xl bg-slate-50 text-rose-300 flex items-center justify-center active-push hover:text-rose-500">
+                                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                        </button>
                                     </div>
-                                </div>
-                                <div class="text-right flex flex-col items-end gap-1">
-                                    <p class="font-black text-[17px] tabular-nums ${isNeg ? 'text-slate-900' : 'text-indigo-600'}">
-                                        ${isNeg ? '-' : '+'}${Math.abs(item.amount).toLocaleString()}
-                                    </p>
-                                    <button onclick="App.actions.delete(${item.id})" class="opacity-0 group-hover:opacity-100 text-[9px] font-black text-rose-300 uppercase hover:text-rose-500 transition-all">삭제</button>
                                 </div>
                             </div>
                         `;
                         container.insertAdjacentHTML('beforeend', html);
                     });
 
+                    if (App.state.displayItems.length === 0) {
+                        container.innerHTML = `
+                            <div class="bg-white border border-slate-100 rounded-3xl p-8 text-center shadow-sm">
+                                <div class="w-14 h-14 mx-auto mb-4 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-300">
+                                    <i data-lucide="receipt" class="w-7 h-7"></i>
+                                </div>
+                                <p class="font-black text-slate-700 mb-1">아직 내역이 없습니다</p>
+                                <p class="text-sm font-bold text-slate-400">아래 + 버튼으로 첫 내역을 추가해보세요.</p>
+                            </div>
+                        `;
+                    }
+
+                    const countEl = document.getElementById('ledger-count');
+                    if (countEl) countEl.innerText = `${App.state.displayItems.length.toLocaleString()}건`;
                     document.getElementById('total-balance').innerText = total.toLocaleString() + '원';
                     document.getElementById('total-income').innerText = '+' + inc.toLocaleString();
                     document.getElementById('total-expense').innerText = '-' + exp.toLocaleString();
@@ -1108,6 +1271,89 @@
                     }
                 },
 
+                toggleLogDetail(id) {
+                    App.state.openLogId = String(App.state.openLogId) === String(id) ? null : id;
+                    this.renderSystemCenter();
+                },
+
+                openNoticeDetail(id) {
+                    App.state.selectedNoticeId = id;
+                    this.renderNoticeDetail();
+                    document.getElementById('notice-detail-modal').classList.remove('hidden');
+                    document.body.classList.add('overflow-hidden');
+                },
+
+                closeNoticeDetail() {
+                    document.getElementById('notice-detail-modal').classList.add('hidden');
+                    App.state.selectedNoticeId = null;
+                    if (document.getElementById('system-panel').classList.contains('hidden')) {
+                        document.body.classList.remove('overflow-hidden');
+                    }
+                },
+
+                renderNoticeDetail() {
+                    const container = document.getElementById('notice-detail-content');
+                    if (!container) return;
+                    const notice = App.state.notices.find(item => String(item.id) === String(App.state.selectedNoticeId));
+                    if (!notice) {
+                        container.innerHTML = '';
+                        return;
+                    }
+                    const title = App.ui.escapeHTML(notice.title);
+                    const body = App.ui.escapeHTML(notice.body);
+                    const comments = Array.isArray(notice.comments) ? notice.comments : [];
+                    const formatTime = (value) => new Date(value).toLocaleString('ko-KR', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+
+                    container.innerHTML = `
+                        <div class="flex items-start justify-between gap-4 mb-5">
+                            <div class="min-w-0">
+                                <p class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1">Update Notice</p>
+                                <h3 class="text-2xl font-black text-slate-900 leading-tight break-words">${title}</h3>
+                                <p class="text-[11px] font-bold text-slate-400 mt-2">${formatTime(notice.time)}</p>
+                            </div>
+                            <button onclick="App.ui.closeNoticeDetail()" class="shrink-0 p-2 bg-slate-100 rounded-full active-push">
+                                <i data-lucide="x" class="w-5 h-5 text-slate-600"></i>
+                            </button>
+                        </div>
+
+                        <p class="text-sm text-slate-600 leading-7 whitespace-pre-wrap mb-5">${body}</p>
+
+                        <div class="flex gap-2 mb-6">
+                            <button onclick="App.actions.toggleNoticeLike(${notice.id})" class="flex-1 py-3 rounded-2xl bg-rose-50 text-rose-500 font-black active-push">
+                                좋아요 ${Number(notice.likes || 0).toLocaleString()}
+                            </button>
+                            <div class="flex-1 py-3 rounded-2xl bg-slate-50 text-slate-500 font-black text-center">
+                                댓글 ${comments.length.toLocaleString()}
+                            </div>
+                        </div>
+
+                        <div class="space-y-3 mb-5">
+                            ${comments.length ? comments.map(comment => `
+                                <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                                    <p class="text-sm font-bold text-slate-700 leading-relaxed whitespace-pre-wrap">${App.ui.escapeHTML(comment.body)}</p>
+                                    <p class="text-[10px] font-bold text-slate-400 mt-2">${formatTime(comment.time)}</p>
+                                </div>
+                            `).join('') : `
+                                <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100 text-sm font-bold text-slate-400 text-center">
+                                    아직 댓글이 없습니다.
+                                </div>
+                            `}
+                        </div>
+
+                        <div class="flex gap-2">
+                            <input id="notice-comment-input" type="text" maxlength="120" placeholder="댓글을 입력하세요"
+                                class="min-w-0 flex-1 p-4 rounded-2xl bg-slate-50 border border-slate-100 outline-none text-sm font-bold focus:bg-white focus:ring-2 focus:ring-indigo-500/20">
+                            <button onclick="App.actions.addNoticeComment(${notice.id})" class="shrink-0 px-5 rounded-2xl bg-slate-900 text-white font-bold active-push">등록</button>
+                        </div>
+                    `;
+                    lucide.createIcons();
+                },
+
                 renderSystemCenter() {
                     const logList = document.getElementById('system-log-list');
                     const noticeList = document.getElementById('notice-list');
@@ -1118,7 +1364,8 @@
                         info: ['bg-slate-100 text-slate-500', 'info'],
                         success: ['bg-emerald-100 text-emerald-600', 'check'],
                         error: ['bg-rose-100 text-rose-600', 'alert'],
-                        notice: ['bg-indigo-100 text-indigo-600', '공지']
+                        notice: ['bg-indigo-100 text-indigo-600', '공지'],
+                        budget: ['bg-amber-100 text-amber-700', '예산']
                     };
                     const formatTime = (value) => new Date(value).toLocaleString('ko-KR', {
                         month: 'short',
@@ -1136,13 +1383,20 @@
                         const [badgeClass, badgeText] = typeStyle[log.type] || typeStyle.info;
                         const message = App.ui.escapeHTML(log.message);
                         logList.insertAdjacentHTML('beforeend', `
-                            <div class="p-4 rounded-2xl bg-white border border-slate-100 shadow-sm">
+                            <button onclick="App.ui.toggleLogDetail(${log.id})" class="w-full text-left p-4 rounded-2xl bg-white border border-slate-100 shadow-sm active-push">
                                 <div class="flex items-start justify-between gap-3">
                                     <p class="text-sm font-bold text-slate-700 leading-relaxed">${message}</p>
                                     <span class="shrink-0 px-2 py-1 rounded-full text-[10px] font-black ${badgeClass}">${badgeText}</span>
                                 </div>
                                 <p class="text-[10px] font-bold text-slate-400 mt-2">${formatTime(log.time)}</p>
-                            </div>
+                                ${String(App.state.openLogId) === String(log.id) ? `
+                                    <div class="mt-4 pt-4 border-t border-slate-100 space-y-2">
+                                        <p class="text-xs font-bold text-slate-500">상세 시간: ${new Date(log.time).toLocaleString('ko-KR')}</p>
+                                        <p class="text-xs font-bold text-slate-500">알림 종류: ${badgeText}</p>
+                                        ${log.meta ? `<pre class="text-[11px] leading-relaxed bg-slate-50 border border-slate-100 rounded-xl p-3 overflow-x-auto text-slate-500">${App.ui.escapeHTML(JSON.stringify(log.meta, null, 2))}</pre>` : ''}
+                                    </div>
+                                ` : ''}
+                            </button>
                         `);
                     });
 
@@ -1154,25 +1408,38 @@
                     App.state.notices.forEach(notice => {
                         const title = App.ui.escapeHTML(notice.title);
                         const body = App.ui.escapeHTML(notice.body);
+                        const comments = Array.isArray(notice.comments) ? notice.comments : [];
                         noticeList.insertAdjacentHTML('beforeend', `
                             <article class="p-5 rounded-2xl bg-white border border-slate-100 shadow-sm">
-                                <div class="flex items-start justify-between gap-3 mb-2">
-                                    <h4 class="font-black text-slate-800">${title}</h4>
-                                    <button onclick="App.actions.removeNotice(${notice.id})" class="shrink-0 text-[10px] font-black text-rose-300 active-push">삭제</button>
+                                <button onclick="App.ui.openNoticeDetail(${notice.id})" class="w-full text-left active-push">
+                                    <div class="flex items-start justify-between gap-3 mb-2">
+                                        <h4 class="font-black text-slate-800 break-words">${title}</h4>
+                                        <span class="shrink-0 text-[10px] font-black text-indigo-400">자세히</span>
+                                    </div>
+                                    <p class="text-sm text-slate-500 leading-relaxed max-h-12 overflow-hidden">${body}</p>
+                                    <div class="flex items-center justify-between mt-3">
+                                        <p class="text-[10px] font-bold text-slate-400">${formatTime(notice.time)}</p>
+                                        <p class="text-[10px] font-black text-slate-400">좋아요 ${Number(notice.likes || 0)} · 댓글 ${comments.length}</p>
+                                    </div>
+                                </button>
+                                <div class="flex gap-2 mt-4">
+                                    <button onclick="App.actions.toggleNoticeLike(${notice.id})" class="flex-1 py-2 rounded-xl bg-rose-50 text-rose-500 text-xs font-black active-push">좋아요</button>
+                                    <button onclick="App.actions.removeNotice(${notice.id})" class="px-4 py-2 rounded-xl bg-slate-50 text-slate-400 text-xs font-black active-push">삭제</button>
                                 </div>
-                                <p class="text-sm text-slate-500 leading-relaxed whitespace-pre-wrap">${body}</p>
-                                <p class="text-[10px] font-bold text-slate-400 mt-3">${formatTime(notice.time)}</p>
                             </article>
                         `);
                     });
 
                     if (dot) dot.classList.toggle('hidden', App.state.systemLogs.length === 0);
+                    if (App.state.selectedNoticeId) this.renderNoticeDetail();
                     lucide.createIcons();
                 },
 
                 renderChart() {
                     const ctx = document.getElementById('main-chart').getContext('2d');
-                    const expenses = App.state.items.filter(i => i.amount < 0);
+                    const now = new Date();
+                    const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                    const expenses = App.state.items.filter(i => i.amount < 0 && String(i.date || '').slice(0, 7) === monthKey);
                     const stats = {};
                     
                     expenses.forEach(e => {
@@ -1180,30 +1447,98 @@
                         stats[icon] = (stats[icon] || 0) + Math.abs(e.amount);
                     });
 
+                    const categoryNameByIcon = (icon) => {
+                        const category = App.state.categories.find(cat => cat.icon === icon);
+                        return category ? category.name : '기타';
+                    };
+                    const entries = Object.entries(stats).sort((a,b)=>b[1]-a[1]);
+                    const totalExpense = expenses.reduce((sum, item) => sum + Math.abs(item.amount), 0);
+                    const dayOfMonth = now.getDate();
+                    const dailyAvg = dayOfMonth > 0 ? Math.round(totalExpense / dayOfMonth) : 0;
+                    const top = entries[0] || ['-', 0];
+                    const topName = entries.length ? categoryNameByIcon(top[0]) : '-';
+                    const monthLabel = new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: 'long' }).format(now);
+
+                    document.getElementById('stats-month-label').innerText = monthLabel;
+                    document.getElementById('stats-summary').innerHTML = `
+                        <div class="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
+                            <p class="text-[10px] font-black text-slate-400 mb-1">총 지출</p>
+                            <p class="text-sm sm:text-base font-black text-rose-500 tabular-nums">${totalExpense.toLocaleString()}</p>
+                        </div>
+                        <div class="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
+                            <p class="text-[10px] font-black text-slate-400 mb-1">하루 평균</p>
+                            <p class="text-sm sm:text-base font-black text-slate-800 tabular-nums">${dailyAvg.toLocaleString()}</p>
+                        </div>
+                        <div class="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
+                            <p class="text-[10px] font-black text-slate-400 mb-1">최다 지출</p>
+                            <p class="text-sm sm:text-base font-black text-indigo-600 truncate">${App.ui.escapeHTML(topName)}</p>
+                        </div>
+                    `;
+
                     if (App.state.chart) App.state.chart.destroy();
                     App.state.chart = new Chart(ctx, {
                         type: 'doughnut',
                         data: {
-                            labels: Object.keys(stats),
+                            labels: entries.length ? entries.map(([icon]) => `${icon} ${categoryNameByIcon(icon)}`) : ['내역 없음'],
                             datasets: [{
-                                data: Object.values(stats),
-                                backgroundColor: ['#6366f1', '#fb7185', '#34d399', '#fbbf24', '#a78bfa'],
-                                borderWidth: 0
+                                data: entries.length ? entries.map(([, val]) => val) : [1],
+                                backgroundColor: entries.length ? ['#2563eb', '#f43f5e', '#10b981', '#f59e0b', '#8b5cf6', '#14b8a6', '#64748b'] : ['#e2e8f0'],
+                                borderWidth: 4,
+                                borderColor: '#ffffff',
+                                hoverOffset: 6
                             }]
                         },
-                        options: { cutout: '75%', plugins: { legend: { position: 'bottom' } } }
+                        options: {
+                            cutout: '72%',
+                            plugins: {
+                                legend: {
+                                    display: entries.length > 0,
+                                    position: 'bottom',
+                                    labels: { usePointStyle: true, boxWidth: 8, font: { weight: '700' } }
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: (context) => `${context.label}: ${Number(context.raw).toLocaleString()}원`
+                                    }
+                                }
+                            }
+                        }
                     });
 
                     const ranking = document.getElementById('ranking-list');
                     ranking.innerHTML = '';
-                    Object.entries(stats).sort((a,b)=>b[1]-a[1]).forEach(([icon, val]) => {
-                        ranking.insertAdjacentHTML('beforeend', `
-                            <div class="flex justify-between items-center bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
-                                <div class="flex items-center gap-3">
-                                    <span class="text-xl">${icon}</span>
-                                    <span class="font-bold text-slate-700">카테고리 지출</span>
+                    if (entries.length === 0) {
+                        ranking.innerHTML = `
+                            <div class="bg-white border border-slate-100 rounded-3xl p-8 text-center shadow-sm">
+                                <div class="w-14 h-14 mx-auto mb-4 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-300">
+                                    <i data-lucide="chart-no-axes-column" class="w-7 h-7"></i>
                                 </div>
-                                <span class="font-black text-indigo-600">${val.toLocaleString()}원</span>
+                                <p class="font-black text-slate-700 mb-1">이번 달 지출이 없습니다</p>
+                                <p class="text-sm font-bold text-slate-400">내역이 쌓이면 소비 패턴을 보여드릴게요.</p>
+                            </div>
+                        `;
+                        lucide.createIcons();
+                        return;
+                    }
+
+                    entries.forEach(([icon, val], index) => {
+                        const pct = totalExpense > 0 ? Math.round((val / totalExpense) * 100) : 0;
+                        const categoryName = App.ui.escapeHTML(categoryNameByIcon(icon));
+                        ranking.insertAdjacentHTML('beforeend', `
+                            <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm">
+                                <div class="flex justify-between items-center gap-3 mb-3">
+                                    <div class="flex items-center gap-3 min-w-0">
+                                        <span class="w-10 h-10 rounded-2xl bg-slate-50 flex items-center justify-center text-xl shrink-0">${icon}</span>
+                                        <div class="min-w-0">
+                                            <p class="font-black text-slate-800 truncate">#${index + 1} ${categoryName}</p>
+                                            <p class="text-[10px] font-bold text-slate-400">${pct}% 사용</p>
+                                        </div>
+                                    </div>
+                                    <span class="font-black text-indigo-600 tabular-nums">${val.toLocaleString()}원</span>
+                                </div>
+                                <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                                    <div class="h-full rounded-full bg-indigo-500" style="width: ${pct}%"></div>
+                                </div>
                             </div>
                         `);
                     });
@@ -1234,7 +1569,7 @@
                 },
 
                 closeAllModals() {
-                    const ids = ['input-modal','cat-modal','budget-modal','export-modal','stats-view','system-panel'];
+                    const ids = ['input-modal','cat-modal','budget-modal','export-modal','stats-view','system-panel','notice-detail-modal'];
                     ids.forEach(id => {
                         const el = document.getElementById(id);
                         if (el && !el.classList.contains('hidden')) el.classList.add('hidden');
