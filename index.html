@@ -160,7 +160,8 @@
             #budget-modal .bottom-sheet, #input-modal .bottom-sheet { width: 100%; border-radius: 1.2rem 1.2rem 0 0; max-height: 85vh; }
             #budget-modal .relative, #input-modal .relative { max-height: 75vh; overflow-y: auto; }
             #export-modal .relative { width: calc(100% - 32px); max-width: none; border-radius: 1rem; }
-            #cat-modal .relative { width: calc(100% - 32px); max-width: none; }
+            #cat-modal { align-items: flex-end; padding: 0; }
+            #cat-modal .relative { width: 100%; max-width: none; border-radius: 1.5rem 1.5rem 0 0; max-height: 88vh; overflow-y: auto; }
             #budget-input, #f-amount { font-size: 1.25rem; }
             .fixed.bottom-8 { bottom: env(safe-area-inset-bottom, 8px); }
         }
@@ -350,24 +351,52 @@
         </div>
     </div>
 
-    <div id="cat-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-6">
+    <div id="cat-modal" class="hidden fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-6">
         <div class="absolute inset-0 bg-slate-900/80 backdrop-blur-md" onclick="App.ui.toggleCategoryModal()"></div>
-        <div class="relative w-full max-w-sm bg-white rounded-[2.5rem] p-8 shadow-2xl">
-            <h3 class="text-xl font-black mb-6 flex items-center gap-2">
-                <i data-lucide="tag" class="w-5 h-5 text-indigo-500"></i>
-                카테고리 관리
-            </h3>
+        <div class="relative w-full max-w-md bg-white rounded-t-[2rem] sm:rounded-[2rem] p-6 sm:p-8 shadow-2xl max-h-[88vh] overflow-y-auto">
+            <div class="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-6 sm:hidden"></div>
+            <div class="flex items-start justify-between gap-4 mb-6">
+                <div>
+                    <p class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1">Categories</p>
+                    <h3 class="text-xl font-black flex items-center gap-2 text-slate-800">
+                        <i data-lucide="tag" class="w-5 h-5 text-indigo-500"></i>
+                        카테고리 관리
+                    </h3>
+                </div>
+                <button onclick="App.ui.toggleCategoryModal()" class="shrink-0 p-2 bg-slate-100 rounded-full active-push">
+                    <i data-lucide="x" class="w-5 h-5 text-slate-600"></i>
+                </button>
+            </div>
             
-            <div id="cat-manage-list" class="space-y-3 max-h-60 overflow-y-auto hide-scroll mb-6">
+            <div id="cat-manage-list" class="space-y-3 max-h-52 sm:max-h-60 overflow-y-auto hide-scroll mb-6">
                 </div>
 
             <div class="border-t border-slate-100 pt-6">
-                <p class="text-[10px] font-black text-slate-400 uppercase mb-4 tracking-widest">새 카테고리 추가</p>
-                <div class="flex gap-2 mb-4">
-                    <input type="text" id="new-cat-icon" placeholder="😊" class="w-14 p-3 bg-slate-50 rounded-xl text-center outline-none border border-slate-100">
-                    <input type="text" id="new-cat-name" placeholder="이름" class="flex-1 p-3 bg-slate-50 rounded-xl outline-none border border-slate-100 font-bold">
+                <p class="text-[10px] font-black text-slate-400 uppercase mb-3 tracking-widest">새 카테고리 추가</p>
+                <div class="mb-4">
+                    <label class="block text-xs font-black text-slate-500 mb-2">아이콘</label>
+                    <div class="flex gap-2 overflow-x-auto hide-scroll pb-2">
+                        <button onclick="App.ui.pickCategoryIcon('🍔')" class="cat-icon-pick shrink-0 w-12 h-12 rounded-2xl bg-slate-50 border border-slate-100 text-xl active-push">🍔</button>
+                        <button onclick="App.ui.pickCategoryIcon('🏠')" class="cat-icon-pick shrink-0 w-12 h-12 rounded-2xl bg-slate-50 border border-slate-100 text-xl active-push">🏠</button>
+                        <button onclick="App.ui.pickCategoryIcon('🚌')" class="cat-icon-pick shrink-0 w-12 h-12 rounded-2xl bg-slate-50 border border-slate-100 text-xl active-push">🚌</button>
+                        <button onclick="App.ui.pickCategoryIcon('🛒')" class="cat-icon-pick shrink-0 w-12 h-12 rounded-2xl bg-slate-50 border border-slate-100 text-xl active-push">🛒</button>
+                        <button onclick="App.ui.pickCategoryIcon('☕')" class="cat-icon-pick shrink-0 w-12 h-12 rounded-2xl bg-slate-50 border border-slate-100 text-xl active-push">☕</button>
+                        <button onclick="App.ui.pickCategoryIcon('🎮')" class="cat-icon-pick shrink-0 w-12 h-12 rounded-2xl bg-slate-50 border border-slate-100 text-xl active-push">🎮</button>
+                        <button onclick="App.ui.pickCategoryIcon('💊')" class="cat-icon-pick shrink-0 w-12 h-12 rounded-2xl bg-slate-50 border border-slate-100 text-xl active-push">💊</button>
+                        <button onclick="App.ui.pickCategoryIcon('📄')" class="cat-icon-pick shrink-0 w-12 h-12 rounded-2xl bg-slate-50 border border-slate-100 text-xl active-push">📄</button>
+                    </div>
                 </div>
-                <button onclick="App.actions.addCategory()" class="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold active-push transition-all">추가하기</button>
+                <div class="grid grid-cols-[72px_1fr] gap-3 mb-4">
+                    <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-500/20">
+                        <label class="block text-[10px] font-black text-slate-400 mb-1">선택</label>
+                        <input type="text" id="new-cat-icon" placeholder="😊" maxlength="4" class="w-full bg-transparent text-center outline-none font-black text-2xl">
+                    </div>
+                    <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-500/20">
+                        <label class="block text-[10px] font-black text-slate-400 mb-1">이름</label>
+                        <input type="text" id="new-cat-name" placeholder="예: 카페, 병원, 취미" class="w-full bg-transparent outline-none font-black text-base">
+                    </div>
+                </div>
+                <button id="btn-add-category" onclick="App.actions.addCategory(event)" class="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-xl shadow-indigo-100 active-push transition-all">카테고리 추가</button>
             </div>
         </div>
     </div>
@@ -486,10 +515,7 @@
                     // Supabase 클라이언트 초기화
                     this.state.sb = supabase.createClient(this.config.url, this.config.key);
                     
-                    // 로컬 데이터 복구 (카테고리, 예산)
-                    const localCats = localStorage.getItem('sb_ledger_cats');
-                    if (localCats) this.state.categories = JSON.parse(localCats);
-                    
+                    // 로컬 데이터 복구 (예산)
                     const localBudget = localStorage.getItem('sb_ledger_budget');
                     if (localBudget) this.state.budget = parseInt(localBudget);
 
@@ -497,6 +523,7 @@
                     this.state.notices = JSON.parse(localStorage.getItem('sb_update_notices') || '[]');
 
                     await this.actions.loadBudgetSetting();
+                    await this.actions.fetchCategories();
 
                     document.getElementById('header-date').innerText = new Intl.DateTimeFormat('ko-KR', {
                         year: 'numeric',
@@ -533,6 +560,31 @@
                     App.state.items = data;
                     App.state.displayItems = data;
                     App.ui.renderList();
+                },
+
+                async fetchCategories() {
+                    const { data, error } = await App.state.sb
+                        .from('ledger_categories')
+                        .select('id,name,icon,sort_order')
+                        .order('sort_order', { ascending: true })
+                        .order('created_at', { ascending: true });
+
+                    if (error) {
+                        console.error('카테고리 DB 로드 에러:', error);
+                        App.ui.showToast('카테고리 테이블을 먼저 만들어주세요.', 3500, false);
+                        return;
+                    }
+
+                    if (data && data.length > 0) {
+                        App.state.categories = data.map(cat => ({
+                            id: cat.id,
+                            name: cat.name,
+                            icon: cat.icon
+                        }));
+                        if (!App.state.categories.some(cat => cat.id === App.state.selectedCat)) {
+                            App.state.selectedCat = App.state.categories[0].id;
+                        }
+                    }
                 },
 
                 isMissingTableError(error) {
@@ -753,6 +805,7 @@
                     
                     // 카테고리 정보 결합 (이모지 포함 설명 저장)
                     const cat = App.state.categories.find(c => c.id === App.state.selectedCat);
+                    if (!cat) return alert("카테고리를 먼저 선택하거나 추가해주세요.");
                     const finalDesc = `${cat.icon} ${desc}`;
 
                     const payload = { date, description: finalDesc, amount };
@@ -813,26 +866,79 @@
                     }
                 },
 
-                addCategory() {
+                async addCategory(event) {
+                    if (event) event.preventDefault();
+                    const btn = document.getElementById('btn-add-category');
                     const icon = document.getElementById('new-cat-icon').value.trim() || '📄';
                     const name = document.getElementById('new-cat-name').value.trim();
                     if(!name) return alert("카테고리 이름을 입력하세요.");
+                    if (App.state.categories.some(cat => cat.name === name)) {
+                        return App.ui.showToast('이미 같은 이름의 카테고리가 있습니다.', 2500, false);
+                    }
 
-                    const newObj = { id: 'c' + Date.now(), name, icon };
-                    App.state.categories.push(newObj);
-                    localStorage.setItem('sb_ledger_cats', JSON.stringify(App.state.categories));
-                    
+                    if (btn) {
+                        btn.disabled = true;
+                        btn.classList.add('opacity-60');
+                        btn.innerText = '추가 중...';
+                    }
+
+                    const newObj = {
+                        id: 'c' + Date.now(),
+                        name,
+                        icon,
+                        sort_order: App.state.categories.length + 1
+                    };
+
+                    const { data, error } = await App.state.sb
+                        .from('ledger_categories')
+                        .insert([newObj])
+                        .select('id,name,icon,sort_order')
+                        .single();
+
+                    if (error) {
+                        console.error('카테고리 DB 추가 실패:', error);
+                        if (btn) {
+                            btn.disabled = false;
+                            btn.classList.remove('opacity-60');
+                            btn.innerText = '카테고리 추가';
+                        }
+                        return App.ui.showToast('카테고리 추가에 실패했습니다. DB 테이블을 확인해주세요.', 3500, false);
+                    }
+
+                    App.state.categories.push({
+                        id: data.id,
+                        name: data.name,
+                        icon: data.icon
+                    });
+                    App.state.selectedCat = data.id;
+
                     App.ui.renderCatSelectors();
                     App.ui.renderCatManageList();
+                    document.getElementById('new-cat-icon').value = '';
                     document.getElementById('new-cat-name').value = '';
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.classList.remove('opacity-60');
+                        btn.innerText = '카테고리 추가';
+                    }
+                    App.ui.showToast('카테고리가 추가되었습니다.', 2500, false);
                 },
 
-                removeCategory(id) {
+                async removeCategory(id) {
                     if(App.state.categories.length <= 1) return alert("최소 1개의 카테고리는 필요합니다.");
+                    const { error } = await App.state.sb.from('ledger_categories').delete().eq('id', id);
+                    if (error) {
+                        console.error('카테고리 DB 삭제 실패:', error);
+                        return App.ui.showToast('카테고리 삭제에 실패했습니다.', 3000, false);
+                    }
+
                     App.state.categories = App.state.categories.filter(c => c.id !== id);
-                    localStorage.setItem('sb_ledger_cats', JSON.stringify(App.state.categories));
+                    if (App.state.selectedCat === id) {
+                        App.state.selectedCat = App.state.categories[0].id;
+                    }
                     App.ui.renderCatSelectors();
                     App.ui.renderCatManageList();
+                    App.ui.showToast('카테고리가 삭제되었습니다.', 2500, false);
                 },
 
                 async loadBudgetSetting() {
@@ -1174,14 +1280,26 @@
                 renderCatManageList() {
                     const container = document.getElementById('cat-manage-list');
                     container.innerHTML = '';
+                    if (App.state.categories.length === 0) {
+                        container.innerHTML = `
+                            <div class="p-5 rounded-2xl bg-slate-50 border border-slate-100 text-center">
+                                <p class="font-black text-slate-700 mb-1">카테고리가 없습니다</p>
+                                <p class="text-sm font-bold text-slate-400">아래에서 새 카테고리를 추가하세요.</p>
+                            </div>
+                        `;
+                        return;
+                    }
                     App.state.categories.forEach(cat => {
                         container.insertAdjacentHTML('beforeend', `
-                            <div class="flex justify-between items-center bg-slate-50 p-4 rounded-2xl">
-                                <div class="flex items-center gap-3">
-                                    <span class="text-xl">${cat.icon}</span>
-                                    <span class="font-bold text-slate-700 text-sm">${cat.name}</span>
+                            <div class="flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                                <div class="flex items-center gap-3 min-w-0">
+                                    <span class="w-11 h-11 shrink-0 rounded-2xl bg-white flex items-center justify-center text-xl shadow-sm">${cat.icon}</span>
+                                    <div class="min-w-0">
+                                        <span class="block font-black text-slate-700 text-sm truncate">${cat.name}</span>
+                                        <span class="block text-[10px] font-bold text-slate-400">${cat.id}</span>
+                                    </div>
                                 </div>
-                                <button onclick="App.actions.removeCategory('${cat.id}')" class="p-2 text-rose-300 hover:text-rose-500 active-push">
+                                <button onclick="App.actions.removeCategory('${cat.id}')" class="shrink-0 w-10 h-10 rounded-xl bg-white text-rose-300 hover:text-rose-500 active-push flex items-center justify-center">
                                     <i data-lucide="trash-2" class="w-4 h-4"></i>
                                 </button>
                             </div>
@@ -1201,6 +1319,17 @@
                 selectCat(id) {
                     App.state.selectedCat = id;
                     this.renderCatSelectors();
+                },
+
+                pickCategoryIcon(icon) {
+                    const input = document.getElementById('new-cat-icon');
+                    if (input) input.value = icon;
+                    document.querySelectorAll('.cat-icon-pick').forEach(btn => {
+                        btn.classList.toggle('bg-indigo-50', btn.innerText.trim() === icon);
+                        btn.classList.toggle('border-indigo-200', btn.innerText.trim() === icon);
+                    });
+                    const nameInput = document.getElementById('new-cat-name');
+                    if (nameInput) nameInput.focus();
                 },
 
                 openModal() {
