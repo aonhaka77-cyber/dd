@@ -150,6 +150,10 @@
         }
         .toast.show { transform: translateY(0); opacity: 1; }
 
+        .secure-panel {
+            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+        }
+
         /* Modal common styling */
         .modal-backdrop { position: absolute; inset:0; background: rgba(2,6,23,0.6); backdrop-filter: blur(6px); }
         .modal-inner { max-height: 85vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
@@ -159,6 +163,8 @@
             .main-card.improved { padding: 1.5rem; border-radius: 1rem; }
             #budget-modal .bottom-sheet, #input-modal .bottom-sheet { width: 100%; border-radius: 1.2rem 1.2rem 0 0; max-height: 85vh; }
             #budget-modal .relative, #input-modal .relative { max-height: 75vh; overflow-y: auto; }
+            #auth-modal, #security-modal { align-items: flex-end; padding: 0; }
+            #auth-modal > div, #security-modal > div { width: 100%; max-width: none; border-radius: 1.5rem 1.5rem 0 0; max-height: 92vh; overflow-y: auto; }
             #export-modal .relative { width: calc(100% - 32px); max-width: none; border-radius: 1rem; }
             #cat-modal { align-items: flex-end; padding: 0; }
             #cat-modal .relative { width: 100%; max-width: none; border-radius: 1.5rem 1.5rem 0 0; max-height: 88vh; overflow-y: auto; }
@@ -185,6 +191,12 @@
                 </button>
                 <button onclick="App.ui.toggleStats()" class="w-10 h-10 flex items-center justify-center bg-indigo-50 rounded-xl text-indigo-600 active-push">
                     <i data-lucide="pie-chart" class="w-5 h-5"></i>
+                </button>
+                <button id="security-button" onclick="App.ui.openSecurityModal()" class="hidden w-10 h-10 flex items-center justify-center bg-emerald-50 rounded-xl text-emerald-600 active-push">
+                    <i data-lucide="shield" class="w-5 h-5"></i>
+                </button>
+                <button id="auth-button" onclick="App.actions.handleAuthButton()" class="w-10 h-10 flex items-center justify-center bg-slate-900 rounded-xl text-white active-push">
+                    <i data-lucide="user" class="w-5 h-5"></i>
                 </button>
             </div>
         </div>
@@ -222,6 +234,44 @@
     </section>
 
     <section class="max-w-xl mx-auto px-5 sm:px-6 mb-6">
+        <div id="quick-insight" class="mb-4 grid grid-cols-3 gap-2"></div>
+        <div class="mb-3 flex gap-2 rounded-2xl bg-white border border-slate-100 p-1 shadow-sm">
+            <button id="filter-all" onclick="App.actions.setPeriodFilter('all')" class="flex-1 py-2.5 rounded-xl text-xs font-black transition-all">전체</button>
+            <button id="filter-month" onclick="App.actions.setPeriodFilter('month')" class="flex-1 py-2.5 rounded-xl text-xs font-black transition-all">이번 달</button>
+        </div>
+        <div class="mb-3 grid grid-cols-2 gap-2 rounded-2xl bg-white border border-slate-100 p-1 shadow-sm">
+            <button id="scope-own" onclick="App.actions.setLedgerScope('own')" class="py-3 rounded-xl text-xs font-black transition-all">
+                <span>내 내역</span>
+                <span id="own-count" class="ml-1 text-[10px] opacity-70">0</span>
+            </button>
+            <button id="scope-shared" onclick="App.actions.setLedgerScope('shared')" class="py-3 rounded-xl text-xs font-black transition-all">
+                <span>공유 내역</span>
+                <span id="shared-count" class="ml-1 text-[10px] opacity-70">0</span>
+            </button>
+        </div>
+        <div id="shared-window" class="hidden mb-3 bg-white border border-indigo-100 rounded-3xl p-4 shadow-sm">
+            <div class="flex items-start justify-between gap-3 mb-4">
+                <div>
+                    <p class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1">Shared Ledger</p>
+                    <h3 class="text-lg font-black text-slate-800">&#44277;&#50976; &#45236;&#50669;</h3>
+                </div>
+                <span id="shared-owner-count" class="px-2.5 py-1 rounded-full bg-indigo-50 text-[10px] font-black text-indigo-500">0&#47749;</span>
+            </div>
+            <div class="grid grid-cols-3 gap-2">
+                <div class="rounded-2xl bg-slate-50 p-3 min-w-0">
+                    <p class="text-[10px] font-black text-slate-400 mb-1">&#52509; &#54633;&#44228;</p>
+                    <p id="shared-total-balance" class="text-sm font-black text-slate-800 tabular-nums truncate">0&#50896;</p>
+                </div>
+                <div class="rounded-2xl bg-emerald-50 p-3 min-w-0">
+                    <p class="text-[10px] font-black text-emerald-500 mb-1">&#49688;&#51077;</p>
+                    <p id="shared-total-income" class="text-sm font-black text-emerald-600 tabular-nums truncate">+0</p>
+                </div>
+                <div class="rounded-2xl bg-rose-50 p-3 min-w-0">
+                    <p class="text-[10px] font-black text-rose-400 mb-1">&#51648;&#52636;</p>
+                    <p id="shared-total-expense" class="text-sm font-black text-rose-500 tabular-nums truncate">-0</p>
+                </div>
+            </div>
+        </div>
             <div class="flex gap-2">
             <div class="flex-1 relative">
                 <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300"></i>
@@ -261,6 +311,78 @@
     </div>
 
     <div id="toast" class="toast fixed left-1/2 -translate-x-1/2 bottom-[180px] z-50 hidden"></div>
+
+    <!-- Auth Modal -->
+    <div id="auth-modal" class="hidden fixed inset-0 z-[90] flex items-center justify-center p-6 bg-slate-950/75 backdrop-blur-md">
+        <div class="w-full max-w-sm bg-white rounded-[2rem] p-6 shadow-2xl">
+            <div class="flex items-start justify-between gap-4 mb-6">
+                <div>
+                    <p class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1">계정 보안</p>
+                    <h3 id="auth-title" class="text-2xl font-black text-slate-900">로그인</h3>
+                    <p id="auth-subtitle" class="text-sm font-bold text-slate-400 mt-1">내 가계부를 안전하게 불러옵니다.</p>
+                </div>
+                <i data-lucide="shield-check" class="w-7 h-7 text-indigo-500 shrink-0"></i>
+            </div>
+
+            <div class="space-y-3">
+                <input id="auth-email" type="text" autocomplete="username" placeholder="아이디"
+                    class="w-full p-4 rounded-2xl bg-slate-50 border border-slate-100 outline-none font-bold focus:bg-white focus:ring-2 focus:ring-indigo-500/20">
+                <input id="auth-password" type="password" autocomplete="current-password" placeholder="비밀번호"
+                    class="w-full p-4 rounded-2xl bg-slate-50 border border-slate-100 outline-none font-bold focus:bg-white focus:ring-2 focus:ring-indigo-500/20">
+                <button id="auth-submit" onclick="App.actions.submitAuth()" class="w-full py-4 rounded-2xl bg-slate-900 text-white font-black active-push">로그인</button>
+                <button id="auth-switch" onclick="App.actions.switchAuthMode()" class="w-full py-3 rounded-2xl bg-slate-100 text-slate-500 font-bold active-push">회원가입하기</button>
+            </div>
+
+            <p id="auth-message" class="hidden mt-4 text-xs font-bold text-slate-400 leading-relaxed"></p>
+        </div>
+    </div>
+
+    <!-- Security Modal -->
+    <div id="security-modal" class="hidden fixed inset-0 z-[85] flex items-center justify-center p-6 bg-slate-950/70 backdrop-blur-md">
+        <div class="w-full max-w-md secure-panel rounded-[2rem] p-6 shadow-2xl">
+            <div class="flex items-start justify-between gap-4 mb-5">
+                <div>
+                    <p class="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-1">보안 설정</p>
+                    <h3 class="text-2xl font-black text-slate-900">계정 보안</h3>
+                    <p id="security-account" class="text-xs font-bold text-slate-400 mt-1"></p>
+                </div>
+                <button onclick="App.ui.closeSecurityModal()" class="shrink-0 p-2 bg-slate-100 rounded-full active-push">
+                    <i data-lucide="x" class="w-5 h-5 text-slate-600"></i>
+                </button>
+            </div>
+
+            <div class="space-y-5">
+                <section class="p-4 rounded-2xl bg-white border border-slate-100 shadow-sm">
+                    <h4 class="font-black text-slate-800 mb-3">비밀번호 변경</h4>
+                    <div class="space-y-2">
+                        <input id="old-password" type="password" placeholder="현재 비밀번호" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-100 outline-none font-bold">
+                        <input id="new-password" type="password" placeholder="새 비밀번호" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-100 outline-none font-bold">
+                        <button onclick="App.actions.changePassword()" class="w-full py-3 rounded-xl bg-slate-900 text-white font-black active-push">변경하기</button>
+                    </div>
+                </section>
+
+                <section class="p-4 rounded-2xl bg-white border border-slate-100 shadow-sm">
+                    <h4 class="font-black text-slate-800 mb-2">내역 공유</h4>
+                    <p class="text-xs font-bold text-slate-400 mb-3">상대방 아이디만 입력하세요. 쉼표, 공백, 줄바꿈 모두 가능합니다.</p>
+                    <textarea id="viewer-input" rows="3" placeholder="예: mom friend01 gildong" class="w-full p-3 rounded-xl bg-slate-50 border border-slate-100 outline-none font-bold resize-none"></textarea>
+                    <div id="viewer-list" class="flex flex-wrap gap-2 mt-3"></div>
+                    <button id="btn-save-viewers" onclick="App.actions.saveViewers()" class="w-full mt-3 py-3 rounded-xl bg-indigo-600 text-white font-black active-push">공유 저장</button>
+                </section>
+
+                <section class="p-4 rounded-2xl bg-emerald-50 border border-emerald-100">
+                    <div class="flex items-center justify-between gap-3">
+                        <div>
+                            <h4 class="font-black text-emerald-700">브라우저 암호화</h4>
+                            <p class="text-xs font-bold text-emerald-600 mt-1">새 내역은 로그인 비밀번호 기반 키로 암호화 저장됩니다.</p>
+                        </div>
+                        <i data-lucide="lock-keyhole" class="w-6 h-6 text-emerald-600"></i>
+                    </div>
+                </section>
+            </div>
+
+            <p id="security-message" class="hidden mt-4 text-xs font-bold text-slate-400 leading-relaxed"></p>
+        </div>
+    </div>
 
     <!-- Budget Modal -->
     <div id="budget-modal" class="hidden fixed inset-0 z-[60] flex items-end justify-center">
@@ -421,7 +543,7 @@
                 <div id="system-log-list" class="space-y-3"></div>
             </section>
 
-            <section class="border-t border-slate-100 pt-8">
+            <section id="notice-compose-section" class="border-t border-slate-100 pt-8">
                 <h3 class="text-sm font-black text-slate-700 mb-4">업데이트 공지 작성</h3>
                 <div class="space-y-3">
                     <input id="notice-title" type="text" maxlength="40" placeholder="공지 제목"
@@ -501,12 +623,21 @@
                 type: 'ex', // 'ex' 지출, 'in' 수입
                 editId: null,
                 budget: 1000000,
+                periodFilter: localStorage.getItem('sb_ledger_period_filter') || 'all',
+                ledgerScope: localStorage.getItem('sb_ledger_scope') || 'own',
                 chart: null,
                 systemLogs: [],
                 notices: [],
                 systemDbAvailable: true,
                 openLogId: null,
-                selectedNoticeId: null
+                selectedNoticeId: null,
+                user: null,
+                authMode: 'login',
+                authReady: false,
+                authPassword: '',
+                encryptionKey: null,
+                viewers: [],
+                legacyMode: false
             },
 
             // [초기화]
@@ -516,14 +647,8 @@
                     this.state.sb = supabase.createClient(this.config.url, this.config.key);
                     
                     // 로컬 데이터 복구 (예산)
-                    const localBudget = localStorage.getItem('sb_ledger_budget');
-                    if (localBudget) this.state.budget = parseInt(localBudget);
-
                     this.state.systemLogs = JSON.parse(localStorage.getItem('sb_system_logs') || '[]');
                     this.state.notices = JSON.parse(localStorage.getItem('sb_update_notices') || '[]');
-
-                    await this.actions.loadBudgetSetting();
-                    await this.actions.fetchCategories();
 
                     document.getElementById('header-date').innerText = new Intl.DateTimeFormat('ko-KR', {
                         year: 'numeric',
@@ -534,10 +659,10 @@
                     document.getElementById('f-date').valueAsDate = new Date();
                     
                     lucide.createIcons();
-                    await this.actions.fetchSystemCenter();
-                    await this.actions.fetch();
-                    this.ui.renderCatSelectors();
-                    this.ui.renderSystemCenter();
+                    this.state.user = null;
+                    this.state.authReady = true;
+
+                    await this.actions.refreshSecureData();
                 } catch (e) {
                     console.error("초기화 실패:", e);
                 }
@@ -545,27 +670,549 @@
 
             // [기능 함수군]
             actions: {
+                storageKey(key) {
+                    const id = App.state.user ? App.state.user.id : 'guest';
+                    return `sb_${id}_${key}`;
+                },
+
+                normalizeLoginId(value) {
+                    const raw = String(value || '').trim().toLowerCase();
+                    if (!raw) return { loginId: '', email: '', shareId: '' };
+                    const compact = raw.replace(/\s+/g, '').replace(/[^a-z0-9._-]/g, '');
+                    return { loginId: compact, email: compact, shareId: compact };
+                },
+
+                parseViewerInput(value) {
+                    const current = App.actions.currentUsername();
+                    return [...new Set(String(value || '')
+                        .split(/[\s,;]+/)
+                        .map(v => App.actions.normalizeLoginId(v).shareId)
+                        .filter(v => v && v !== current)
+                    )];
+                },
+
+                normalizeViewerList(value) {
+                    if (typeof value === 'string') {
+                        try {
+                            const parsed = JSON.parse(value);
+                            if (Array.isArray(parsed)) value = parsed;
+                        } catch (e) {}
+                    }
+                    return App.actions.parseViewerInput(Array.isArray(value) ? value.join(' ') : value);
+                },
+
+                async hashPassword(username, password) {
+                    const enc = new TextEncoder();
+                    const data = enc.encode(`moa:${username}:${password}`);
+                    const hash = await crypto.subtle.digest('SHA-256', data);
+                    return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+                },
+
+                currentShareIds() {
+                    if (!App.state.user) return [];
+                    const username = String(App.state.user.username || App.state.user.email || '').toLowerCase();
+                    return [...new Set([username].filter(Boolean))];
+                },
+
+                currentUsername() {
+                    return App.state.user ? String(App.state.user.username || App.state.user.email || 'guest') : 'guest';
+                },
+
+                isOwnLedgerItem(item) {
+                    if (!App.state.user) return false;
+                    const username = App.actions.currentUsername().toLowerCase();
+                    return App.state.legacyMode
+                        || String(item.user_id || '') === String(App.state.user.id || '')
+                        || String(item.owner_email || item.owner_username || '').toLowerCase() === username;
+                },
+
+                isSharedLedgerItem(item) {
+                    if (!App.state.user || App.state.legacyMode) return false;
+                    return !App.actions.isOwnLedgerItem(item);
+                },
+
+                isNoticeAdmin() {
+                    const ids = App.actions.currentShareIds();
+                    return App.state.legacyMode || ids.includes('akdhs323');
+                },
+
+                isAkdhsLegacyLogin(login, password) {
+                    return login.shareId === 'akdhs323' && password === '1234';
+                },
+
+                async deriveEncryptionKey(password) {
+                    if (!password || !App.state.user || !window.crypto?.subtle) return null;
+                    const enc = new TextEncoder();
+                    const baseKey = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
+                    return crypto.subtle.deriveKey(
+                        { name: 'PBKDF2', salt: enc.encode(`moa:${App.state.user.id}`), iterations: 120000, hash: 'SHA-256' },
+                        baseKey,
+                        { name: 'AES-GCM', length: 256 },
+                        false,
+                        ['encrypt', 'decrypt']
+                    );
+                },
+
+                bufferToBase64(buffer) {
+                    return btoa(String.fromCharCode(...new Uint8Array(buffer)));
+                },
+
+                base64ToBuffer(value) {
+                    return Uint8Array.from(atob(value), c => c.charCodeAt(0));
+                },
+
+                async encryptRecord(record) {
+                    if (!App.state.encryptionKey) return null;
+                    const iv = crypto.getRandomValues(new Uint8Array(12));
+                    const encoded = new TextEncoder().encode(JSON.stringify(record));
+                    const cipher = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, App.state.encryptionKey, encoded);
+                    return {
+                        encrypted_payload: App.actions.bufferToBase64(cipher),
+                        encrypted_iv: App.actions.bufferToBase64(iv)
+                    };
+                },
+
+                async decryptRecord(row) {
+                    if (!row.encrypted_payload || !row.encrypted_iv || !App.state.encryptionKey) return row;
+                    try {
+                        const plain = await crypto.subtle.decrypt(
+                            { name: 'AES-GCM', iv: App.actions.base64ToBuffer(row.encrypted_iv) },
+                            App.state.encryptionKey,
+                            App.actions.base64ToBuffer(row.encrypted_payload)
+                        );
+                        const data = JSON.parse(new TextDecoder().decode(plain));
+                        return { ...row, ...data, encrypted: true };
+                    } catch (e) {
+                        return { ...row, description: '🔒 복호화 실패', amount: 0, encrypted: true, locked: true };
+                    }
+                },
+
+                requireAuth() {
+                    if (App.state.user) return true;
+                    App.ui.openAuthModal('login');
+                    App.ui.showAuthMessage('로그인 후 사용할 수 있습니다.', 'text-rose-500');
+                    return false;
+                },
+
+                async refreshSecureData() {
+                    App.ui.renderAuthState();
+
+                    if (!App.state.user) {
+                        App.state.items = [];
+                        App.state.displayItems = [];
+                        App.ui.renderList();
+                        App.ui.openAuthModal('login');
+                        return;
+                    }
+
+                    App.ui.closeAuthModal();
+                    App.state.budget = 1000000;
+                    App.state.viewers = [];
+                    App.state.selectedCat = App.state.categories[0] ? App.state.categories[0].id : 'c1';
+                    const localBudget = localStorage.getItem(App.actions.storageKey('ledger_budget'));
+                    if (localBudget) App.state.budget = parseInt(localBudget);
+
+                    await App.actions.migrateLegacyRows();
+                    await App.actions.loadBudgetSetting();
+                    await App.actions.loadViewers();
+                    await App.actions.fetchCategories();
+                    await App.actions.fetchSystemCenter();
+                    await App.actions.fetch();
+                    App.ui.renderCatSelectors();
+                    App.ui.renderSystemCenter();
+                },
+
+                handleAuthButton() {
+                    if (App.state.user) {
+                        App.actions.signOut();
+                    } else {
+                        App.ui.openAuthModal('login');
+                    }
+                },
+
+                switchAuthMode() {
+                    App.state.authMode = App.state.authMode === 'login' ? 'signup' : 'login';
+                    App.ui.renderAuthMode();
+                },
+
+                async submitAuth() {
+                    const login = App.actions.normalizeLoginId(document.getElementById('auth-email').value);
+                    const password = document.getElementById('auth-password').value.trim();
+                    const btn = document.getElementById('auth-submit');
+
+                    if (!login.loginId || password.length < 4) {
+                        App.ui.showAuthMessage('아이디와 4자 이상 비밀번호를 입력해주세요.', 'text-rose-500');
+                        return;
+                    }
+
+                    btn.disabled = true;
+                    btn.classList.add('opacity-60');
+
+                    try {
+                        const passwordHash = await App.actions.hashPassword(login.loginId, password);
+                        let account = null;
+
+                        const { data, error } = App.state.authMode === 'signup'
+                            ? await App.state.sb.rpc('register_account', {
+                                p_username: login.loginId,
+                                p_password_hash: passwordHash
+                            })
+                            : await App.state.sb.rpc('login_account', {
+                                p_username: login.loginId,
+                                p_password_hash: passwordHash
+                            });
+
+                        if (error) throw error;
+                        account = Array.isArray(data) ? data[0] : data;
+                        if (!account) throw new Error('아이디가 없거나 비밀번호가 다릅니다.');
+
+                        App.state.legacyMode = false;
+                        App.state.user = {
+                            id: account.id,
+                            username: account.username,
+                            email: account.username
+                        };
+                        App.state.authPassword = password;
+                        App.state.encryptionKey = await App.actions.deriveEncryptionKey(password);
+
+                        App.ui.closeAuthModal();
+                        App.ui.renderAuthState();
+                        await App.actions.refreshSecureData();
+                        App.ui.showToast(App.state.authMode === 'signup' ? '회원가입되었습니다.' : '로그인되었습니다.', 2200, false);
+                    } catch (e) {
+                        const rawMessage = e.message || '';
+                        let message = rawMessage || '인증 중 오류가 발생했습니다.';
+                        if (/duplicate|unique/i.test(rawMessage)) {
+                            message = '이미 가입된 아이디입니다. 로그인으로 전환해서 들어가주세요.';
+                        }
+                        App.ui.showAuthMessage(message, 'text-rose-500');
+                    } finally {
+                        btn.disabled = false;
+                        btn.classList.remove('opacity-60');
+                    }
+                },
+
+                async signOut() {
+                    App.state.authPassword = '';
+                    App.state.encryptionKey = null;
+                    App.state.legacyMode = false;
+                    App.state.user = null;
+                    App.state.items = [];
+                    App.state.displayItems = [];
+                    App.ui.renderList();
+                    App.ui.renderAuthState();
+                    App.ui.showToast('로그아웃되었습니다.', 2200, false);
+                },
+
+                async enterLegacyMode(password) {
+                    App.state.legacyMode = true;
+                    App.state.user = {
+                        id: 'legacy-akdhs323',
+                        username: 'akdhs323',
+                        email: 'akdhs323',
+                        isLegacyLocal: true
+                    };
+                    App.state.authPassword = password;
+                    App.state.encryptionKey = null;
+                    App.ui.closeAuthModal();
+                    App.ui.renderAuthState();
+                    await App.actions.claimAllLedgerRowsForAkdhs();
+                    await App.actions.fetch();
+                    App.ui.showToast('akdhs323 소유주로 기존 가계부 내역을 불러왔습니다.', 2600, false);
+                },
+
+                async claimAllLedgerRowsForAkdhs() {
+                    try {
+                        await App.state.sb
+                            .from('ledger')
+                            .update({
+                                user_id: null,
+                                owner_email: 'akdhs323',
+                                shared_with: ['akdhs323']
+                            })
+                            .not('id', 'is', null);
+                    } catch (e) {
+                        console.warn('소유주 정리 실패:', e);
+                    }
+                },
+
+                async migrateLegacyRows() {
+                    if (!App.state.user || !App.actions.isNoticeAdmin() || App.state.legacyMode) return;
+                    try {
+                        const { error } = await App.state.sb.rpc('claim_legacy_ledger', {
+                            p_account_id: App.state.user.id,
+                            p_username: App.state.user.username
+                        });
+                        if (!error) {
+                            App.ui.showToast('기존 비로그인 가계부 내역을 akdhs323 계정으로 불러왔습니다.', 2600, false);
+                            await App.actions.fetch();
+                            return;
+                        }
+                    } catch (e) {
+                        console.warn('legacy migration rpc skipped:', e);
+                    }
+
+                    try {
+                        await App.state.sb
+                            .from('ledger')
+                            .update({
+                                user_id: App.state.user.id,
+                                owner_email: App.state.user.username,
+                                shared_with: [App.state.user.username]
+                            })
+                            .or(`user_id.is.null,owner_email.eq.${App.state.user.username},shared_with.cs.{${App.state.user.username}}`);
+                    } catch (e) {
+                        console.warn('legacy migration fallback skipped:', e);
+                    }
+                },
+
+                async loadViewers() {
+                    if (!App.state.user) return;
+                    const ownerUsername = App.actions.currentUsername();
+                    try {
+                        const { data, error } = await App.state.sb
+                            .from('ledger_shares')
+                            .select('viewer_username')
+                            .eq('owner_username', ownerUsername)
+                            .order('viewer_username', { ascending: true });
+                        if (error) throw error;
+                        App.state.viewers = App.actions.normalizeViewerList((data || []).map(row => row.viewer_username));
+                        localStorage.setItem(App.actions.storageKey('ledger_viewers'), JSON.stringify(App.state.viewers));
+                    } catch (e) {
+                        console.warn('ledger_shares load failed:', e);
+                        App.state.viewers = App.actions.normalizeViewerList(localStorage.getItem(App.actions.storageKey('ledger_viewers')) || '[]');
+                        App.ui.showSecurityMessage('공유 테이블을 불러오지 못했습니다. ledger_shares 테이블과 RLS를 확인해주세요.', 'text-rose-500');
+                    }
+                    App.ui.renderSecurityPanel();
+                },
+
+                async loadSharedOwners() {
+                    if (!App.state.user || App.state.legacyMode) return [];
+                    const viewerUsername = App.actions.currentUsername();
+                    try {
+                        const { data, error } = await App.state.sb
+                            .from('ledger_shares')
+                            .select('owner_username')
+                            .eq('viewer_username', viewerUsername);
+                        if (error) throw error;
+                        return App.actions.normalizeViewerList((data || []).map(row => row.owner_username));
+                    } catch (e) {
+                        console.warn('ledger_shares owner lookup failed:', e);
+                        return [];
+                    }
+                },
+
+                async saveViewers() {
+                    if (!App.actions.requireAuth()) return;
+                    if (App.state.legacyMode) return App.ui.showSecurityMessage('기존 내역 모드에서는 공유 권한을 저장할 수 없습니다. 일반 계정으로 로그인해주세요.', 'text-rose-500');
+
+                    const input = document.getElementById('viewer-input');
+                    const btn = document.getElementById('btn-save-viewers');
+                    const ownerUsername = App.actions.currentUsername();
+                    const viewers = App.actions.parseViewerInput(input ? input.value : '');
+
+                    App.state.viewers = viewers;
+                    if (input) input.value = viewers.join(', ');
+                    localStorage.setItem(App.actions.storageKey('ledger_viewers'), JSON.stringify(viewers));
+                    App.ui.renderSecurityPanel();
+
+                    if (btn) {
+                        btn.disabled = true;
+                        btn.classList.add('opacity-60');
+                        btn.innerText = '저장 중...';
+                    }
+
+                    try {
+                        const { error: deleteError } = await App.state.sb
+                            .from('ledger_shares')
+                            .delete()
+                            .eq('owner_username', ownerUsername);
+                        if (deleteError) throw deleteError;
+
+                        if (viewers.length) {
+                            const rows = viewers.map(viewer => ({
+                                owner_username: ownerUsername,
+                                viewer_username: viewer
+                            }));
+                            const { error: insertError } = await App.state.sb
+                                .from('ledger_shares')
+                                .insert(rows);
+                            if (insertError) throw insertError;
+                        }
+                    } catch (e) {
+                        if (btn) {
+                            btn.disabled = false;
+                            btn.classList.remove('opacity-60');
+                            btn.innerText = '공유 저장';
+                        }
+                        return App.ui.showSecurityMessage('공유 저장 실패: ledger_shares 테이블과 RLS 정책을 확인해주세요.', 'text-rose-500');
+                    }
+
+                    try {
+                        await App.state.sb
+                            .from('ledger')
+                            .update({ owner_email: ownerUsername, shared_with: viewers })
+                            .or(`user_id.eq.${App.state.user.id},owner_email.eq.${ownerUsername}`);
+                    } catch (e) {
+                        console.warn('ledger shared_with compatibility update skipped:', e);
+                    }
+
+                    if (viewers.length) {
+                        const rowsToOpen = (App.state.items || [])
+                            .filter(item => App.actions.isOwnLedgerItem(item) && !item.locked && item.encrypted_payload);
+                        for (const row of rowsToOpen) {
+                            const { error } = await App.state.sb
+                                .from('ledger')
+                                .update({
+                                    description: row.description,
+                                    amount: row.amount,
+                                    encrypted_payload: null,
+                                    encrypted_iv: null
+                                })
+                                .eq('id', row.id)
+                                .or(`user_id.eq.${App.state.user.id},owner_email.eq.${ownerUsername}`);
+                            if (error) console.warn('shared row decrypt update skipped:', error);
+                        }
+                    }
+
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.classList.remove('opacity-60');
+                        btn.innerText = '공유 저장';
+                    }
+                    App.ui.showSecurityMessage(viewers.length ? `${viewers.join(', ')} 유저네임에 공유 권한을 저장했습니다.` : '공유 대상을 모두 제거했습니다.', 'text-emerald-600');
+                    await App.actions.fetch();
+                },
+                async removeViewer(username) {
+                    App.state.viewers = (App.state.viewers || []).filter(item => item !== username);
+                    const input = document.getElementById('viewer-input');
+                    if (input) input.value = App.state.viewers.join(', ');
+                    App.ui.renderSecurityPanel();
+                    await App.actions.saveViewers();
+                },
+
+                async changePassword() {
+                    if (!App.actions.requireAuth()) return;
+                    if (App.state.legacyMode) return App.ui.showSecurityMessage('기존 내역 모드에서는 비밀번호를 바꿀 수 없습니다. Supabase 계정으로 로그인한 뒤 변경해주세요.', 'text-rose-500');
+                    const oldPassword = document.getElementById('old-password').value.trim();
+                    const newPassword = document.getElementById('new-password').value.trim();
+                    if (newPassword.length < 4) return App.ui.showSecurityMessage('새 비밀번호는 4자 이상으로 입력해주세요.', 'text-rose-500');
+
+                    try {
+                        const oldHash = await App.actions.hashPassword(App.state.user.username, oldPassword);
+                        const newHash = await App.actions.hashPassword(App.state.user.username, newPassword);
+                        const { data, error } = await App.state.sb.rpc('change_account_password', {
+                            p_account_id: App.state.user.id,
+                            p_old_hash: oldHash,
+                            p_new_hash: newHash
+                        });
+                        if (error) throw error;
+                        if (data !== true) throw new Error('현재 비밀번호가 다릅니다.');
+                        const ownItems = App.state.items.filter(item => String(item.user_id) === String(App.state.user.id) && !item.locked);
+                        App.state.authPassword = newPassword;
+                        App.state.encryptionKey = await App.actions.deriveEncryptionKey(newPassword);
+                        await Promise.all(ownItems.map(async item => {
+                            const encrypted = await App.actions.encryptRecord({
+                                description: item.description,
+                                amount: item.amount
+                            });
+                            if (!encrypted) return;
+                            await App.state.sb
+                                .from('ledger')
+                                .update({
+                                    description: '🔒 암호화된 내역',
+                                    amount: 0,
+                                    encrypted_payload: encrypted.encrypted_payload,
+                                    encrypted_iv: encrypted.encrypted_iv
+                                })
+                                .eq('id', item.id)
+                                .eq('user_id', App.state.user.id);
+                        }));
+                        document.getElementById('old-password').value = '';
+                        document.getElementById('new-password').value = '';
+                        await App.actions.fetch();
+                        App.ui.showSecurityMessage('비밀번호를 변경했습니다. 새 내역은 새 키로 암호화됩니다.', 'text-emerald-600');
+                    } catch (e) {
+                        App.ui.showSecurityMessage(e.message || '비밀번호 변경에 실패했습니다.', 'text-rose-500');
+                    }
+                },
+
                 async fetch() {
-                    const { data, error } = await App.state.sb
+                    if (!App.actions.requireAuth()) return;
+
+                    const username = App.actions.currentUsername();
+                    const rowsById = new Map();
+                    const addRows = (rows) => (rows || []).forEach(row => rowsById.set(String(row.id), row));
+
+                    if (!App.state.legacyMode) {
+                        try {
+                            const { data, error } = await App.state.sb.rpc('get_ledger_items', {
+                                p_account_id: App.state.user.id,
+                                p_username: username
+                            });
+                            if (!error) addRows(data);
+                            else console.warn('ledger rpc failed, trying direct query:', error);
+                        } catch (e) {
+                            console.warn('ledger rpc unavailable, trying direct query:', e);
+                        }
+                    }
+
+                    const sharedOwners = await App.actions.loadSharedOwners();
+                    if (!App.state.legacyMode) {
+                        try {
+                            const { data, error } = await App.state.sb.rpc('get_shared_ledger_items', {
+                                p_viewer_username: username
+                            });
+                            if (!error) addRows(data);
+                            else console.warn('shared ledger rpc failed, trying direct query:', error);
+                        } catch (e) {
+                            console.warn('shared ledger rpc unavailable, trying direct query:', e);
+                        }
+                    }
+                    const legacyShareFilter = App.actions.currentShareIds()
+                        .map(id => `shared_with.cs.{${id}}`)
+                        .join(',');
+
+                    let query = App.state.sb
                         .from('ledger')
-                        .select('*')
+                        .select('*');
+
+                    if (!App.state.legacyMode) {
+                        const filters = [`user_id.eq.${App.state.user.id}`, `owner_email.eq.${username}`];
+                        if (sharedOwners.length) filters.push(`owner_email.in.(${sharedOwners.join(',')})`);
+                        if (legacyShareFilter) filters.push(legacyShareFilter);
+                        if (App.actions.isNoticeAdmin()) filters.push('user_id.is.null');
+                        query = query.or(filters.join(','));
+                    }
+
+                    const { data, error } = await query
                         .order('date', { ascending: false })
                         .order('id', { ascending: false });
 
                     if (error) {
-                        console.error("데이터 로드 에러:", error);
-                        return;
+                        console.error('데이터 로드 에러:', error);
+                        if (rowsById.size === 0) {
+                            App.ui.showToast('내역을 불러오지 못했습니다. ledger_shares/ledger RLS 정책을 확인해주세요.', 3500, false);
+                            return;
+                        }
+                    } else {
+                        addRows(data);
                     }
 
-                    App.state.items = data;
-                    App.state.displayItems = data;
-                    App.ui.renderList();
-                },
+                    const merged = [...rowsById.values()].sort((a, b) => {
+                        const dateCompare = String(b.date || '').localeCompare(String(a.date || ''));
+                        if (dateCompare) return dateCompare;
+                        return Number(b.id || 0) - Number(a.id || 0);
+                    });
 
+                    App.state.items = await Promise.all(merged.map(row => App.actions.decryptRecord(row)));
+                    App.actions.filter();
+                },
                 async fetchCategories() {
                     const { data, error } = await App.state.sb
                         .from('ledger_categories')
                         .select('id,name,icon,sort_order')
+                        .or(`user_id.is.null,user_id.eq.${App.state.user.id}`)
                         .order('sort_order', { ascending: true })
                         .order('created_at', { ascending: true });
 
@@ -610,15 +1257,27 @@
 
                 normalizeNotice(row) {
                     let comments = row.comments || [];
+                    let likedBy = row.liked_by || row.likedBy || [];
                     if (typeof comments === 'string') {
                         try { comments = JSON.parse(comments); } catch (e) { comments = []; }
                     }
+                    if (typeof likedBy === 'string') {
+                        try { likedBy = JSON.parse(likedBy); } catch (e) { likedBy = []; }
+                    }
+                    comments = (Array.isArray(comments) ? comments : []).map(comment => ({
+                        id: comment.id || Date.now(),
+                        body: comment.body || '',
+                        author: comment.author || comment.username || '익명',
+                        likedBy: Array.isArray(comment.likedBy) ? comment.likedBy : (Array.isArray(comment.liked_by) ? comment.liked_by : []),
+                        time: comment.time || new Date().toISOString()
+                    }));
                     return {
                         id: row.id,
                         title: row.title,
                         body: row.body,
-                        likes: Number(row.likes || 0),
-                        comments: Array.isArray(comments) ? comments : [],
+                        likes: Array.isArray(likedBy) && likedBy.length ? likedBy.length : Number(row.likes || 0),
+                        likedBy: Array.isArray(likedBy) ? likedBy : [],
+                        comments,
                         time: row.created_at || row.time || new Date().toISOString()
                     };
                 },
@@ -695,6 +1354,7 @@
                 },
 
                 async publishNotice() {
+                    if (!App.actions.isNoticeAdmin()) return App.ui.showToast('공지 작성은 akdhs323 계정만 가능합니다.', 2500, false);
                     const titleEl = document.getElementById('notice-title');
                     const bodyEl = document.getElementById('notice-body');
                     const title = titleEl.value.trim();
@@ -706,6 +1366,7 @@
                         title,
                         body,
                         likes: 0,
+                        likedBy: [],
                         comments: [],
                         time: new Date().toISOString()
                     };
@@ -717,11 +1378,20 @@
                     await App.actions.addSystemLog(`업데이트 공지 등록: ${title}`, 'notice');
 
                     if (App.state.systemDbAvailable) {
-                        const { data, error } = await App.state.sb
+                        let { data, error } = await App.state.sb
                             .from('update_notices')
-                            .insert([{ title, body, likes: 0, comments: [] }])
+                            .insert([{ title, body, likes: 0, liked_by: [], comments: [] }])
                             .select('*')
                             .single();
+                        if (error && String(error.message || '').includes('liked_by')) {
+                            const fallback = await App.state.sb
+                                .from('update_notices')
+                                .insert([{ title, body, likes: 0, comments: [] }])
+                                .select('*')
+                                .single();
+                            data = fallback.data;
+                            error = fallback.error;
+                        }
 
                         if (error) {
                             if (App.actions.isMissingTableError(error)) App.state.systemDbAvailable = false;
@@ -740,10 +1410,17 @@
                     localStorage.setItem('sb_update_notices', JSON.stringify(App.state.notices));
                     if (!App.state.systemDbAvailable) return;
 
-                    const { error } = await App.state.sb
+                    let { error } = await App.state.sb
                         .from('update_notices')
-                        .update({ likes: notice.likes || 0, comments: notice.comments || [] })
+                        .update({ likes: notice.likes || 0, liked_by: notice.likedBy || [], comments: notice.comments || [] })
                         .eq('id', notice.id);
+                    if (error && String(error.message || '').includes('liked_by')) {
+                        const fallback = await App.state.sb
+                            .from('update_notices')
+                            .update({ likes: notice.likes || 0, comments: notice.comments || [] })
+                            .eq('id', notice.id);
+                        error = fallback.error;
+                    }
 
                     if (error) {
                         if (App.actions.isMissingTableError(error)) App.state.systemDbAvailable = false;
@@ -752,15 +1429,24 @@
                 },
 
                 async toggleNoticeLike(id) {
+                    if (!App.actions.requireAuth()) return;
                     const notice = App.state.notices.find(item => String(item.id) === String(id));
                     if (!notice) return;
-                    notice.likes = Number(notice.likes || 0) + 1;
+                    const username = App.actions.currentUsername();
+                    notice.likedBy = Array.isArray(notice.likedBy) ? notice.likedBy : [];
+                    if (notice.likedBy.includes(username)) {
+                        notice.likedBy = notice.likedBy.filter(name => name !== username);
+                    } else {
+                        notice.likedBy.push(username);
+                    }
+                    notice.likes = notice.likedBy.length;
                     App.ui.renderSystemCenter();
                     App.ui.renderNoticeDetail();
                     await App.actions.syncNotice(notice);
                 },
 
                 async addNoticeComment(id) {
+                    if (!App.actions.requireAuth()) return;
                     const notice = App.state.notices.find(item => String(item.id) === String(id));
                     const input = document.getElementById('notice-comment-input');
                     const body = input ? input.value.trim() : '';
@@ -770,6 +1456,8 @@
                     notice.comments.push({
                         id: Date.now(),
                         body,
+                        author: App.actions.currentUsername(),
+                        likedBy: [],
                         time: new Date().toISOString()
                     });
                     input.value = '';
@@ -778,7 +1466,26 @@
                     await App.actions.syncNotice(notice);
                 },
 
+                async toggleCommentLike(noticeId, commentId) {
+                    if (!App.actions.requireAuth()) return;
+                    const notice = App.state.notices.find(item => String(item.id) === String(noticeId));
+                    if (!notice) return;
+                    const comment = (notice.comments || []).find(item => String(item.id) === String(commentId));
+                    if (!comment) return;
+                    const username = App.actions.currentUsername();
+                    comment.likedBy = Array.isArray(comment.likedBy) ? comment.likedBy : [];
+                    if (comment.likedBy.includes(username)) {
+                        comment.likedBy = comment.likedBy.filter(name => name !== username);
+                    } else {
+                        comment.likedBy.push(username);
+                    }
+                    App.ui.renderSystemCenter();
+                    App.ui.renderNoticeDetail();
+                    await App.actions.syncNotice(notice);
+                },
+
                 async removeNotice(id) {
+                    if (!App.actions.isNoticeAdmin()) return App.ui.showToast('공지 삭제는 akdhs323 계정만 가능합니다.', 2500, false);
                     App.state.notices = App.state.notices.filter(notice => notice.id !== id);
                     localStorage.setItem('sb_update_notices', JSON.stringify(App.state.notices));
                     if (App.state.systemDbAvailable) {
@@ -793,6 +1500,8 @@
                 },
 
                 async save() {
+                    if (!App.actions.requireAuth()) return;
+                    if (App.state.legacyMode) return App.ui.showToast('기존 내역 모드에서는 새 내역 저장 전 Supabase 계정 설정을 먼저 완료해주세요.', 3200, false);
                     const date = document.getElementById('f-date').value;
                     const desc = document.getElementById('f-desc').value.trim();
                     const amtRaw = document.getElementById('f-amount').value.replace(/,/g, '');
@@ -808,11 +1517,24 @@
                     if (!cat) return alert("카테고리를 먼저 선택하거나 추가해주세요.");
                     const finalDesc = `${cat.icon} ${desc}`;
 
-                    const payload = { date, description: finalDesc, amount };
+                    const encrypted = (App.state.viewers || []).length
+                        ? null
+                        : await App.actions.encryptRecord({ description: finalDesc, amount });
+                    const payload = encrypted
+                        ? {
+                            date,
+                            description: '🔒 암호화된 내역',
+                            amount: 0,
+                            user_id: App.state.user.id,
+                            owner_email: App.state.user.username,
+                            shared_with: App.state.viewers,
+                            ...encrypted
+                        }
+                        : { date, description: finalDesc, amount, user_id: App.state.user.id, owner_email: App.state.user.username, shared_with: App.state.viewers };
                     
                     let res;
                     if (App.state.editId) {
-                        res = await App.state.sb.from('ledger').update(payload).eq('id', App.state.editId);
+                        res = await App.state.sb.from('ledger').update(payload).eq('id', App.state.editId).eq('user_id', App.state.user.id);
                     } else {
                         res = await App.state.sb.from('ledger').insert([payload]);
                     }
@@ -827,8 +1549,9 @@
                 },
 
                 async delete(id) {
+                    if (!App.actions.requireAuth()) return;
                     if (!confirm("이 내역을 영구적으로 삭제하시겠습니까?")) return;
-                    const { error } = await App.state.sb.from('ledger').delete().eq('id', id);
+                    const { error } = await App.state.sb.from('ledger').delete().eq('id', id).eq('user_id', App.state.user.id);
                     if (!error) {
                         await App.actions.fetch();
                         App.ui.showToast('내역이 삭제되었습니다.');
@@ -836,6 +1559,10 @@
                 },
 
                 async handleOCR(input) {
+                    if (!App.actions.requireAuth()) {
+                        input.value = "";
+                        return;
+                    }
                     if (!input.files || !input.files[0]) return;
                     const loader = document.getElementById('ai-loading');
                     const bar = document.getElementById('ocr-bar');
@@ -867,6 +1594,7 @@
                 },
 
                 async addCategory(event) {
+                    if (!App.actions.requireAuth()) return;
                     if (event) event.preventDefault();
                     const btn = document.getElementById('btn-add-category');
                     const icon = document.getElementById('new-cat-icon').value.trim() || '📄';
@@ -886,7 +1614,8 @@
                         id: 'c' + Date.now(),
                         name,
                         icon,
-                        sort_order: App.state.categories.length + 1
+                        sort_order: App.state.categories.length + 1,
+                        user_id: App.state.user.id
                     };
 
                     const { data, error } = await App.state.sb
@@ -925,8 +1654,9 @@
                 },
 
                 async removeCategory(id) {
+                    if (!App.actions.requireAuth()) return;
                     if(App.state.categories.length <= 1) return alert("최소 1개의 카테고리는 필요합니다.");
-                    const { error } = await App.state.sb.from('ledger_categories').delete().eq('id', id);
+                    const { error } = await App.state.sb.from('ledger_categories').delete().eq('id', id).eq('user_id', App.state.user.id);
                     if (error) {
                         console.error('카테고리 DB 삭제 실패:', error);
                         return App.ui.showToast('카테고리 삭제에 실패했습니다.', 3000, false);
@@ -942,18 +1672,34 @@
                 },
 
                 async loadBudgetSetting() {
+                    if (!App.actions.requireAuth()) return;
+                    const budgetKey = `monthly_budget_${App.state.user.id}`;
+                    try {
+                        const rpc = await App.state.sb.rpc('get_account_setting', {
+                            p_account_id: App.state.user.id,
+                            p_key: budgetKey
+                        });
+                        if (!rpc.error && rpc.data) {
+                            App.state.budget = parseInt(rpc.data) || App.state.budget;
+                            return;
+                        }
+                    } catch (e) {
+                        console.warn('budget setting rpc unavailable:', e);
+                    }
+
                     try {
                         const { data, error } = await App.state.sb
                             .from('ledger_settings')
                             .select('value')
-                            .eq('key', 'monthly_budget')
+                            .eq('key', budgetKey)
+                            .eq('user_id', App.state.user.id)
                             .single();
                         if (error) {
                             // table missing or other error
                             if (error.code === 'PGRST205' || (error.message && error.message.includes("Could not find the table"))) {
                                 App.state.dbAvailable = false;
                                 // fallback to localStorage (silent)
-                                const localBudget = localStorage.getItem('sb_ledger_budget');
+                                const localBudget = localStorage.getItem(App.actions.storageKey('ledger_budget'));
                                 if (localBudget) App.state.budget = parseInt(localBudget);
                                 return;
                             }
@@ -968,33 +1714,42 @@
                 },
 
                 async saveBudgetSetting() {
+                    if (!App.actions.requireAuth()) return { message: 'auth-required' };
+                    const budgetKey = `monthly_budget_${App.state.user.id}`;
                     // If DB already known to be unavailable, skip network call
                     if (!App.state.dbAvailable) {
-                        localStorage.setItem('sb_ledger_budget', String(App.state.budget));
+                        localStorage.setItem(App.actions.storageKey('ledger_budget'), String(App.state.budget));
                         return { message: 'local-only' };
                     }
 
                     try {
-                        const res = await App.state.sb
-                            .from('ledger_settings')
-                            .upsert([{ key: 'monthly_budget', value: String(App.state.budget) }], { onConflict: ['key'] });
+                        const rpc = await App.state.sb.rpc('set_account_setting', {
+                            p_account_id: App.state.user.id,
+                            p_key: budgetKey,
+                            p_value: String(App.state.budget)
+                        });
+                        const res = rpc.error
+                            ? await App.state.sb
+                                .from('ledger_settings')
+                                .upsert([{ key: budgetKey, value: String(App.state.budget), user_id: App.state.user.id }], { onConflict: ['key'] })
+                            : rpc;
 
                         if (res.error) {
                             // If table not found, mark DB unavailable and fallback (silent)
                             if (res.error.code === 'PGRST205' || (res.error.message && res.error.message.includes("Could not find the table"))) {
                                 App.state.dbAvailable = false;
-                                localStorage.setItem('sb_ledger_budget', String(App.state.budget));
+                                localStorage.setItem(App.actions.storageKey('ledger_budget'), String(App.state.budget));
                                 return { message: 'local-fallback' };
                             }
                             throw res.error;
                         }
 
-                        localStorage.setItem('sb_ledger_budget', String(App.state.budget));
+                        localStorage.setItem(App.actions.storageKey('ledger_budget'), String(App.state.budget));
                         return res;
                     } catch (e) {
                         // fallback to local (silent)
                         App.state.dbAvailable = false;
-                        localStorage.setItem('sb_ledger_budget', String(App.state.budget));
+                        localStorage.setItem(App.actions.storageKey('ledger_budget'), String(App.state.budget));
                         return { message: 'local-fallback' };
                     }
                 },
@@ -1026,9 +1781,33 @@
                 },
 
                 filter() {
-                    const q = document.getElementById('search-bar').value.toLowerCase();
-                    App.state.displayItems = App.state.items.filter(i => i.description.toLowerCase().includes(q));
+                    const search = document.getElementById('search-bar');
+                    const q = search ? search.value.toLowerCase() : '';
+                    const now = new Date();
+                    const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                    App.state.displayItems = App.state.items.filter(i => {
+                        const matchesText = String(i.description || '').toLowerCase().includes(q);
+                        const matchesPeriod = App.state.periodFilter !== 'month' || String(i.date || '').slice(0, 7) === currentMonthKey;
+                        const matchesScope = App.state.ledgerScope === 'shared'
+                            ? App.actions.isSharedLedgerItem(i)
+                            : App.actions.isOwnLedgerItem(i);
+                        return matchesText && matchesPeriod && matchesScope;
+                    });
+                    App.ui.renderPeriodFilter();
+                    App.ui.renderScopeTabs();
                     App.ui.renderList();
+                },
+
+                setPeriodFilter(filter) {
+                    App.state.periodFilter = filter === 'month' ? 'month' : 'all';
+                    localStorage.setItem('sb_ledger_period_filter', App.state.periodFilter);
+                    App.actions.filter();
+                },
+
+                setLedgerScope(scope) {
+                    App.state.ledgerScope = scope === 'shared' ? 'shared' : 'own';
+                    localStorage.setItem('sb_ledger_scope', App.state.ledgerScope);
+                    App.actions.filter();
                 },
 
                 changeType(t) {
@@ -1054,6 +1833,7 @@
                 },
 
                 exportCSV() {
+                    if (!App.actions.requireAuth()) return;
                     if (App.state.items.length === 0) return alert('다운로드할 내역이 없습니다.');
 
                     const totalBalance = App.state.items.reduce((s, it) => s + (it.amount || 0), 0);
@@ -1094,10 +1874,12 @@
                 },
 
                 showExportDialog() {
+                    if (!App.actions.requireAuth()) return;
                     App.ui.openExportModal();
                 },
 
                 exportJSON() {
+                    if (!App.actions.requireAuth()) return;
                     if (App.state.items.length === 0) return alert('다운로드할 내역이 없습니다.');
 
                     const income = App.state.items.filter(i => i.amount > 0).reduce((sum, item) => sum + item.amount, 0);
@@ -1137,30 +1919,122 @@
 
             // [UI 렌더링 함수군]
             ui: {
+                openAuthModal(mode = 'login') {
+                    App.state.authMode = mode;
+                    this.renderAuthMode();
+                    const modal = document.getElementById('auth-modal');
+                    if (modal) modal.classList.remove('hidden');
+                    document.body.classList.add('overflow-hidden');
+                    setTimeout(() => {
+                        const email = document.getElementById('auth-email');
+                        if (email) email.focus();
+                    }, 80);
+                },
+
+                closeAuthModal() {
+                    const modal = document.getElementById('auth-modal');
+                    if (modal) modal.classList.add('hidden');
+                    document.body.classList.remove('overflow-hidden');
+                },
+
+                openSecurityModal() {
+                    if (!App.actions.requireAuth()) return;
+                    this.renderSecurityPanel();
+                    document.getElementById('security-modal').classList.remove('hidden');
+                    document.body.classList.add('overflow-hidden');
+                },
+
+                closeSecurityModal() {
+                    document.getElementById('security-modal').classList.add('hidden');
+                    document.body.classList.remove('overflow-hidden');
+                },
+
+                renderSecurityPanel() {
+                    const account = document.getElementById('security-account');
+                    const input = document.getElementById('viewer-input');
+                    const list = document.getElementById('viewer-list');
+                    if (account) account.innerText = App.state.legacyMode ? 'akdhs323 기존 내역 모드' : (App.state.user ? App.state.user.username : '');
+                    if (input) input.value = (App.state.viewers || []).join(', ');
+                    if (list) {
+                        const viewers = App.state.viewers || [];
+                        list.innerHTML = viewers.length ? viewers.map(viewer => `
+                            <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-indigo-50 text-indigo-600 text-xs font-black">
+                                ${App.ui.escapeHTML(viewer)}
+                                <button onclick="App.actions.removeViewer('${App.ui.escapeHTML(viewer)}')" class="ml-1 text-indigo-300 hover:text-rose-500 active-push" type="button">×</button>
+                            </span>
+                        `).join('') : `
+                            <span class="text-[11px] font-bold text-slate-400">아직 공유된 사용자가 없습니다.</span>
+                        `;
+                    }
+                },
+
+                showSecurityMessage(message, colorClass = 'text-slate-400') {
+                    const el = document.getElementById('security-message');
+                    if (!el) return;
+                    el.className = `mt-4 text-xs font-bold leading-relaxed ${colorClass}`;
+                    el.classList.toggle('hidden', !message);
+                    el.innerText = message || '';
+                },
+
+                renderAuthMode() {
+                    const isSignup = App.state.authMode === 'signup';
+                    const title = document.getElementById('auth-title');
+                    const subtitle = document.getElementById('auth-subtitle');
+                    const submit = document.getElementById('auth-submit');
+                    const sw = document.getElementById('auth-switch');
+                    const password = document.getElementById('auth-password');
+                    if (title) title.innerText = isSignup ? '회원가입' : '로그인';
+                    if (subtitle) subtitle.innerText = isSignup ? '아이디와 비밀번호로 계정을 만듭니다.' : '아이디로 내 가계부를 불러옵니다.';
+                    if (submit) submit.innerText = isSignup ? '회원가입' : '로그인';
+                    if (sw) sw.innerText = isSignup ? '이미 계정이 있어요' : '회원가입하기';
+                    if (password) password.setAttribute('autocomplete', isSignup ? 'new-password' : 'current-password');
+                    this.showAuthMessage('', 'text-slate-400');
+                },
+
+                renderAuthState() {
+                    const button = document.getElementById('auth-button');
+                    const securityButton = document.getElementById('security-button');
+                    if (!button) return;
+                    if (securityButton) securityButton.classList.toggle('hidden', !App.state.user);
+                    if (App.state.user) {
+                        button.title = App.state.legacyMode ? '기존 내역 모드 종료' : `${App.state.user.username} 로그아웃`;
+                        button.classList.remove('bg-slate-900');
+                        button.classList.add('bg-emerald-600');
+                        button.innerHTML = '<i data-lucide="log-out" class="w-5 h-5"></i>';
+                    } else {
+                        button.title = '로그인';
+                        button.classList.remove('bg-emerald-600');
+                        button.classList.add('bg-slate-900');
+                        button.innerHTML = '<i data-lucide="user" class="w-5 h-5"></i>';
+                    }
+                    lucide.createIcons();
+                },
+
+                showAuthMessage(message, colorClass = 'text-slate-400') {
+                    const el = document.getElementById('auth-message');
+                    if (!el) return;
+                    el.className = `mt-4 text-xs font-bold leading-relaxed ${colorClass}`;
+                    el.classList.toggle('hidden', !message);
+                    el.innerText = message || '';
+                },
+
                 renderList() {
                     const container = document.getElementById('ledger-list');
+                    App.ui.renderScopeTabs();
+                    App.ui.renderSharedWindow();
                     container.innerHTML = '';
                     
                     const now = new Date();
                     const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
                     const allItems = App.state.items || [];
-                    const monthlyItems = allItems.filter(item => String(item.date || '').slice(0, 7) === currentMonthKey);
-                    const total = allItems.reduce((sum, item) => sum + (item.amount || 0), 0);
+                    const ownItems = allItems.filter(item => App.actions.isOwnLedgerItem(item));
+                    const monthlyItems = ownItems.filter(item => String(item.date || '').slice(0, 7) === currentMonthKey);
+                    const total = ownItems.reduce((sum, item) => sum + (item.amount || 0), 0);
                     const inc = monthlyItems.filter(item => item.amount > 0).reduce((sum, item) => sum + item.amount, 0);
                     const exp = monthlyItems.filter(item => item.amount < 0).reduce((sum, item) => sum + Math.abs(item.amount), 0);
-                    let lastDate = "";
+                    let lastGroup = "";
 
                     App.state.displayItems.forEach((item, idx) => {
-                        if (item.date !== lastDate) {
-                            const dateText = new Date(item.date).toLocaleDateString('ko-KR', {
-                                month: 'long',
-                                day: 'numeric',
-                                weekday: 'short'
-                            });
-                            container.insertAdjacentHTML('beforeend', `<p class="ledger-date-label">${dateText}</p>`);
-                            lastDate = item.date;
-                        }
-
                         const isNeg = item.amount < 0;
                         const parts = item.description.split(' ');
                         const icon = parts[0].length <= 2 ? parts[0] : '📄';
@@ -1169,15 +2043,30 @@
                         const accent = isNeg ? '#fb7185' : '#6366f1';
                         const amountColor = isNeg ? 'text-rose-500 bg-rose-50' : 'text-indigo-600 bg-indigo-50';
                         const amountPrefix = isNeg ? '-' : '+';
+                        const isOwner = App.actions.isOwnLedgerItem(item);
+                        const ownerName = App.ui.escapeHTML(item.owner_email || item.owner_username || '공유');
+                        const dateText = new Date(item.date).toLocaleDateString('ko-KR', {
+                            month: 'long',
+                            day: 'numeric',
+                            weekday: 'short'
+                        });
+                        const groupKey = App.state.ledgerScope === 'shared' ? `${ownerName}-${item.date}` : item.date;
+                        const groupLabel = App.state.ledgerScope === 'shared' ? `${ownerName} · ${dateText}` : dateText;
+
+                        if (groupKey !== lastGroup) {
+                            container.insertAdjacentHTML('beforeend', `<p class="ledger-date-label">${groupLabel}</p>`);
+                            lastGroup = groupKey;
+                        }
 
                         const html = `
                             <div class="ledger-card bg-white p-4 sm:p-5 rounded-3xl shadow-sm border border-slate-100 list-item-anim active:scale-[0.98] transition-all" style="animation-delay: ${idx * 0.04}s; --ledger-accent: ${accent};">
                                 <div class="flex items-center gap-3">
-                                    <button onclick="App.ui.openEdit(${JSON.stringify(item).replace(/"/g, '&quot;')})" class="min-w-0 flex-1 flex items-center gap-3 text-left active-push">
+                                    <button onclick="${isOwner ? `App.ui.openEdit(${JSON.stringify(item).replace(/"/g, '&quot;')})` : ''}" class="min-w-0 flex-1 flex items-center gap-3 text-left ${isOwner ? 'active-push' : 'cursor-default'}">
                                         <div class="shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center bg-slate-50 text-xl shadow-inner">${icon}</div>
                                         <div class="min-w-0 flex-1">
                                             <div class="flex items-center gap-2 mb-1">
                                                 <span class="px-2 py-0.5 rounded-full bg-slate-100 text-[10px] font-black text-slate-500">${typeText}</span>
+                                                ${isOwner ? '' : `<span class="px-2 py-0.5 rounded-full bg-indigo-50 text-[10px] font-black text-indigo-500">${ownerName} 공유</span>`}
                                                 <span class="text-[10px] font-bold text-slate-400 tabular-nums">#${item.id}</span>
                                             </div>
                                             <h4 class="font-black text-slate-800 text-[15px] leading-tight truncate">${desc}</h4>
@@ -1188,9 +2077,9 @@
                                         <p class="px-3 py-1.5 rounded-2xl font-black text-[15px] tabular-nums ${amountColor}">
                                             ${amountPrefix}${Math.abs(item.amount).toLocaleString()}
                                         </p>
-                                        <button onclick="App.actions.delete(${item.id})" class="w-9 h-9 rounded-xl bg-slate-50 text-rose-300 flex items-center justify-center active-push hover:text-rose-500">
+                                        ${isOwner ? `<button onclick="App.actions.delete(${item.id})" class="w-9 h-9 rounded-xl bg-slate-50 text-rose-300 flex items-center justify-center active-push hover:text-rose-500">
                                             <i data-lucide="trash-2" class="w-4 h-4"></i>
-                                        </button>
+                                        </button>` : `<span class="w-9 h-9 rounded-xl bg-slate-50 text-slate-300 flex items-center justify-center"><i data-lucide="eye" class="w-4 h-4"></i></span>`}
                                     </div>
                                 </div>
                             </div>
@@ -1199,13 +2088,17 @@
                     });
 
                     if (App.state.displayItems.length === 0) {
+                        const emptyTitle = App.state.ledgerScope === 'shared' ? '공유받은 내역이 없습니다' : '아직 내역이 없습니다';
+                        const emptyDesc = App.state.ledgerScope === 'shared'
+                            ? '상대가 보안 설정에서 내 아이디를 공유 대상으로 추가하면 여기에 표시됩니다.'
+                            : '아래 + 버튼으로 첫 내역을 추가해보세요.';
                         container.innerHTML = `
                             <div class="bg-white border border-slate-100 rounded-3xl p-8 text-center shadow-sm">
                                 <div class="w-14 h-14 mx-auto mb-4 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-300">
                                     <i data-lucide="receipt" class="w-7 h-7"></i>
                                 </div>
-                                <p class="font-black text-slate-700 mb-1">아직 내역이 없습니다</p>
-                                <p class="text-sm font-bold text-slate-400">아래 + 버튼으로 첫 내역을 추가해보세요.</p>
+                                <p class="font-black text-slate-700 mb-1">${emptyTitle}</p>
+                                <p class="text-sm font-bold text-slate-400">${emptyDesc}</p>
                             </div>
                         `;
                     }
@@ -1215,6 +2108,7 @@
                     document.getElementById('total-balance').innerText = total.toLocaleString() + '원';
                     document.getElementById('total-income').innerText = '+' + inc.toLocaleString();
                     document.getElementById('total-expense').innerText = '-' + exp.toLocaleString();
+                    App.ui.renderQuickInsight({ monthlyItems, exp, inc });
                     
                     // 예산 시각화 - 목표%에 따라 자연스럽게 색상 그라데이션
                     const rawPercent = App.state.budget > 0 ? (exp / App.state.budget) * 100 : 0;
@@ -1258,6 +2152,107 @@
                     }
                     
                     lucide.createIcons();
+                },
+
+                renderPeriodFilter() {
+                    const allBtn = document.getElementById('filter-all');
+                    const monthBtn = document.getElementById('filter-month');
+                    if (!allBtn || !monthBtn) return;
+
+                    const apply = (button, active) => {
+                        button.classList.toggle('bg-slate-900', active);
+                        button.classList.toggle('text-white', active);
+                        button.classList.toggle('shadow-sm', active);
+                        button.classList.toggle('text-slate-400', !active);
+                    };
+
+                    apply(allBtn, App.state.periodFilter !== 'month');
+                    apply(monthBtn, App.state.periodFilter === 'month');
+                },
+
+                renderScopeTabs() {
+                    const ownBtn = document.getElementById('scope-own');
+                    const sharedBtn = document.getElementById('scope-shared');
+                    const ownCount = document.getElementById('own-count');
+                    const sharedCount = document.getElementById('shared-count');
+                    if (!ownBtn || !sharedBtn) return;
+
+                    const ownItems = (App.state.items || []).filter(item => App.actions.isOwnLedgerItem(item));
+                    const sharedItems = (App.state.items || []).filter(item => App.actions.isSharedLedgerItem(item));
+                    if (ownCount) ownCount.innerText = ownItems.length.toLocaleString();
+                    if (sharedCount) sharedCount.innerText = sharedItems.length.toLocaleString();
+
+                    const apply = (button, active) => {
+                        button.classList.toggle('bg-slate-900', active);
+                        button.classList.toggle('text-white', active);
+                        button.classList.toggle('shadow-sm', active);
+                        button.classList.toggle('text-slate-400', !active);
+                    };
+
+                    apply(ownBtn, App.state.ledgerScope !== 'shared');
+                    apply(sharedBtn, App.state.ledgerScope === 'shared');
+                },
+
+                renderSharedWindow() {
+                    const panel = document.getElementById('shared-window');
+                    if (!panel) return;
+
+                    const isSharedScope = App.state.ledgerScope === 'shared';
+                    const sharedItems = isSharedScope
+                        ? (App.state.displayItems || [])
+                        : (App.state.items || []).filter(item => App.actions.isSharedLedgerItem(item));
+                    const total = sharedItems.reduce((sum, item) => sum + (item.amount || 0), 0);
+                    const income = sharedItems.filter(item => item.amount > 0).reduce((sum, item) => sum + item.amount, 0);
+                    const expense = sharedItems.filter(item => item.amount < 0).reduce((sum, item) => sum + Math.abs(item.amount), 0);
+                    const owners = new Set(sharedItems.map(item => String(item.owner_email || item.owner_username || '\uACF5\uC720')).filter(Boolean));
+
+                    panel.classList.toggle('hidden', !isSharedScope);
+                    const balanceEl = document.getElementById('shared-total-balance');
+                    const incomeEl = document.getElementById('shared-total-income');
+                    const expenseEl = document.getElementById('shared-total-expense');
+                    const ownerEl = document.getElementById('shared-owner-count');
+
+                    if (balanceEl) balanceEl.innerText = `${total.toLocaleString()}\uC6D0`;
+                    if (incomeEl) incomeEl.innerText = `+${income.toLocaleString()}`;
+                    if (expenseEl) expenseEl.innerText = `-${expense.toLocaleString()}`;
+                    if (ownerEl) ownerEl.innerText = `${owners.size.toLocaleString()}\uBA85`;
+                },
+                renderQuickInsight({ monthlyItems, exp, inc }) {
+                    const container = document.getElementById('quick-insight');
+                    if (!container) return;
+
+                    const now = new Date();
+                    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+                    const remainBudget = App.state.budget - exp;
+                    const daysLeft = Math.max(daysInMonth - now.getDate() + 1, 1);
+                    const dailySafe = Math.max(Math.floor(remainBudget / daysLeft), 0);
+                    const avgExpense = monthlyItems.length ? Math.round(exp / now.getDate()) : 0;
+                    const savingRate = inc > 0 ? Math.round(((inc - exp) / inc) * 100) : 0;
+
+                    const cards = [
+                        {
+                            label: '하루 가능',
+                            value: `${dailySafe.toLocaleString()}원`,
+                            tone: remainBudget >= 0 ? 'text-emerald-600 bg-emerald-50' : 'text-rose-500 bg-rose-50'
+                        },
+                        {
+                            label: '일평균 지출',
+                            value: `${avgExpense.toLocaleString()}원`,
+                            tone: 'text-slate-700 bg-white'
+                        },
+                        {
+                            label: '저축률',
+                            value: inc > 0 ? `${savingRate}%` : '-',
+                            tone: savingRate >= 0 ? 'text-indigo-600 bg-indigo-50' : 'text-rose-500 bg-rose-50'
+                        }
+                    ];
+
+                    container.innerHTML = cards.map(card => `
+                        <div class="${card.tone} border border-slate-100 rounded-2xl p-3 shadow-sm min-w-0">
+                            <p class="text-[10px] font-black text-slate-400 mb-1">${card.label}</p>
+                            <p class="text-sm font-black tabular-nums truncate">${card.value}</p>
+                        </div>
+                    `).join('');
                 },
 
                 renderCatSelectors() {
@@ -1333,6 +2328,7 @@
                 },
 
                 openModal() {
+                    if (!App.actions.requireAuth()) return;
                     App.state.editId = null;
                     document.getElementById('modal-title').innerText = "내역 추가";
                     document.getElementById('f-desc').value = "";
@@ -1349,6 +2345,7 @@
                 },
 
                 openEdit(item) {
+                    if (!App.actions.requireAuth()) return;
                     App.state.editId = item.id;
                     document.getElementById('modal-title').innerText = "내역 수정";
                     document.getElementById('f-date').value = item.date;
@@ -1362,6 +2359,7 @@
                 },
 
                 toggleCategoryModal() {
+                    if (!App.actions.requireAuth()) return;
                     const m = document.getElementById('cat-modal');
                     if (m.classList.contains('hidden')) {
                         App.ui.closeAllModals();
@@ -1375,6 +2373,7 @@
                 },
 
                 toggleStats() {
+                    if (!App.actions.requireAuth()) return;
                     const v = document.getElementById('stats-view');
                     if (v.classList.contains('hidden')) {
                         App.ui.closeAllModals();
@@ -1431,6 +2430,8 @@
                     const title = App.ui.escapeHTML(notice.title);
                     const body = App.ui.escapeHTML(notice.body);
                     const comments = Array.isArray(notice.comments) ? notice.comments : [];
+                    const username = App.actions.currentUsername();
+                    const likedNotice = Array.isArray(notice.likedBy) && notice.likedBy.includes(username);
                     const formatTime = (value) => new Date(value).toLocaleString('ko-KR', {
                         month: 'short',
                         day: 'numeric',
@@ -1453,8 +2454,8 @@
                         <p class="text-sm text-slate-600 leading-7 whitespace-pre-wrap mb-5">${body}</p>
 
                         <div class="flex gap-2 mb-6">
-                            <button onclick="App.actions.toggleNoticeLike(${notice.id})" class="flex-1 py-3 rounded-2xl bg-rose-50 text-rose-500 font-black active-push">
-                                좋아요 ${Number(notice.likes || 0).toLocaleString()}
+                            <button onclick="App.actions.toggleNoticeLike(${notice.id})" class="flex-1 py-3 rounded-2xl ${likedNotice ? 'bg-rose-500 text-white' : 'bg-rose-50 text-rose-500'} font-black active-push">
+                                ${likedNotice ? '좋아요 취소' : '좋아요'} ${Number(notice.likes || 0).toLocaleString()}
                             </button>
                             <div class="flex-1 py-3 rounded-2xl bg-slate-50 text-slate-500 font-black text-center">
                                 댓글 ${comments.length.toLocaleString()}
@@ -1464,6 +2465,12 @@
                         <div class="space-y-3 mb-5">
                             ${comments.length ? comments.map(comment => `
                                 <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                                    <div class="flex items-center justify-between gap-3 mb-2">
+                                        <p class="text-[10px] font-black text-indigo-500">${App.ui.escapeHTML(comment.author || '익명')}</p>
+                                        <button onclick="App.actions.toggleCommentLike(${notice.id}, ${comment.id})" class="px-2 py-1 rounded-full ${(comment.likedBy || []).includes(username) ? 'bg-rose-500 text-white' : 'bg-white text-rose-400'} text-[10px] font-black active-push">
+                                            좋아요 ${(comment.likedBy || []).length}
+                                        </button>
+                                    </div>
                                     <p class="text-sm font-bold text-slate-700 leading-relaxed whitespace-pre-wrap">${App.ui.escapeHTML(comment.body)}</p>
                                     <p class="text-[10px] font-bold text-slate-400 mt-2">${formatTime(comment.time)}</p>
                                 </div>
@@ -1488,6 +2495,9 @@
                     const noticeList = document.getElementById('notice-list');
                     const dot = document.getElementById('system-log-dot');
                     if (!logList || !noticeList) return;
+                    const canPublish = App.actions.isNoticeAdmin();
+                    const compose = document.getElementById('notice-compose-section');
+                    if (compose) compose.classList.toggle('hidden', !canPublish);
 
                     const typeStyle = {
                         info: ['bg-slate-100 text-slate-500', 'info'],
@@ -1538,6 +2548,7 @@
                         const title = App.ui.escapeHTML(notice.title);
                         const body = App.ui.escapeHTML(notice.body);
                         const comments = Array.isArray(notice.comments) ? notice.comments : [];
+                        const likedNotice = Array.isArray(notice.likedBy) && notice.likedBy.includes(App.actions.currentUsername());
                         noticeList.insertAdjacentHTML('beforeend', `
                             <article class="p-5 rounded-2xl bg-white border border-slate-100 shadow-sm">
                                 <button onclick="App.ui.openNoticeDetail(${notice.id})" class="w-full text-left active-push">
@@ -1552,8 +2563,8 @@
                                     </div>
                                 </button>
                                 <div class="flex gap-2 mt-4">
-                                    <button onclick="App.actions.toggleNoticeLike(${notice.id})" class="flex-1 py-2 rounded-xl bg-rose-50 text-rose-500 text-xs font-black active-push">좋아요</button>
-                                    <button onclick="App.actions.removeNotice(${notice.id})" class="px-4 py-2 rounded-xl bg-slate-50 text-slate-400 text-xs font-black active-push">삭제</button>
+                                    <button onclick="App.actions.toggleNoticeLike(${notice.id})" class="flex-1 py-2 rounded-xl ${likedNotice ? 'bg-rose-500 text-white' : 'bg-rose-50 text-rose-500'} text-xs font-black active-push">${likedNotice ? '좋아요 취소' : '좋아요'}</button>
+                                    ${canPublish ? `<button onclick="App.actions.removeNotice(${notice.id})" class="px-4 py-2 rounded-xl bg-slate-50 text-slate-400 text-xs font-black active-push">삭제</button>` : ''}
                                 </div>
                             </article>
                         `);
@@ -1674,6 +2685,7 @@
                 },
 
                 openBudgetModal() {
+                    if (!App.actions.requireAuth()) return;
                     App.ui.closeAllModals();
                     const el = document.getElementById('budget-input');
                     if (el) el.value = App.state.budget ? String(App.state.budget).replace(/\B(?=(\d{3})+(?!\d))/g, ',') : '';
@@ -1698,7 +2710,7 @@
                 },
 
                 closeAllModals() {
-                    const ids = ['input-modal','cat-modal','budget-modal','export-modal','stats-view','system-panel','notice-detail-modal'];
+                    const ids = ['input-modal','cat-modal','budget-modal','export-modal','stats-view','system-panel','notice-detail-modal','security-modal'];
                     ids.forEach(id => {
                         const el = document.getElementById(id);
                         if (el && !el.classList.contains('hidden')) el.classList.add('hidden');
