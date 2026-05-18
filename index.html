@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>모아</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
@@ -26,6 +26,11 @@
             -webkit-font-smoothing: antialiased;
             padding-bottom: env(safe-area-inset-bottom);
         }
+
+        *, *::before, *::after { box-sizing: border-box; }
+        button, input, textarea, select { min-width: 0; }
+        button { touch-action: manipulation; }
+        .tabular-nums { font-variant-numeric: tabular-nums; }
 
         /* 프리미엄 UI 효과 */
         .glass-header {
@@ -63,6 +68,51 @@
             border: 1px solid rgba(255,255,255,0.08);
             border-radius: 1.25rem;
             padding: 0.9rem;
+            min-width: 0;
+        }
+
+        #total-balance,
+        #total-income,
+        #total-expense,
+        #shared-total-balance,
+        #shared-total-income,
+        #shared-total-expense {
+            overflow-wrap: anywhere;
+            word-break: keep-all;
+        }
+
+        #scope-own,
+        #scope-shared {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.25rem;
+            min-width: 0;
+            white-space: normal;
+            line-height: 1.2;
+        }
+
+        #quick-insight > *,
+        #shared-window .grid > div {
+            min-width: 0;
+        }
+
+        #cat-selector {
+            scroll-snap-type: x proximity;
+            -webkit-overflow-scrolling: touch;
+        }
+        #cat-selector button {
+            scroll-snap-align: start;
+            min-width: 4.75rem;
+        }
+        .cat-icon-pick {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #cat-manage-list button,
+        #cat-manage-list .cat-manage-row {
+            min-width: 0;
         }
 
         /* 하단 시트 애니메이션 */
@@ -125,6 +175,48 @@
             background: var(--ledger-accent, #6366f1);
         }
 
+        .ledger-row {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            min-width: 0;
+        }
+        .ledger-open {
+            min-width: 0;
+            flex: 1 1 auto;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-align: left;
+        }
+        .ledger-meta {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.35rem;
+            margin-bottom: 0.25rem;
+        }
+        .ledger-desc {
+            overflow-wrap: anywhere;
+            word-break: keep-all;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .ledger-actions {
+            flex: 0 0 auto;
+            max-width: 44%;
+            min-width: 0;
+        }
+        .ledger-amount {
+            max-width: 100%;
+            white-space: normal;
+            overflow-wrap: anywhere;
+            line-height: 1.2;
+            text-align: right;
+        }
+
         /* 예산 바 상태 - 목표%에 따른 그라데이션 */
         .budget-bar {
             transition: width 0.6s ease, background 0.5s ease, box-shadow 0.5s ease;
@@ -160,7 +252,27 @@
 
         /* Mobile adjustments */
         @media (max-width: 640px) {
+            header { padding-left: 1rem !important; padding-right: 1rem !important; }
+            section, main { padding-left: 1rem !important; padding-right: 1rem !important; }
             .main-card.improved { padding: 1.5rem; border-radius: 1rem; }
+            #total-balance { font-size: clamp(1.45rem, 8vw, 2.1rem); }
+            #total-income, #total-expense { font-size: clamp(1rem, 5.2vw, 1.25rem); line-height: 1.2; }
+            .metric-tile { padding: 0.75rem; border-radius: 1rem; }
+            #quick-insight { gap: 0.35rem; }
+            #quick-insight > * { padding: 0.6rem !important; border-radius: 0.9rem !important; }
+            #shared-window { padding: 0.85rem; border-radius: 1.25rem; }
+            #shared-window .grid { grid-template-columns: 1fr; }
+            #shared-window .grid > div { padding: 0.75rem; }
+            #shared-window .grid > div p:last-child { font-size: 1rem; white-space: normal; }
+            #scope-own, #scope-shared { padding: 0.75rem 0.4rem; font-size: 0.78rem; }
+            #search-bar { padding-top: 0.9rem; padding-bottom: 0.9rem; }
+            .ledger-card { border-radius: 1.25rem !important; padding: 0.85rem !important; }
+            .ledger-row { align-items: flex-start; gap: 0.65rem; }
+            .ledger-open { gap: 0.65rem; }
+            .ledger-open > div:first-child { width: 2.5rem; height: 2.5rem; border-radius: 0.9rem; font-size: 1rem; }
+            .ledger-actions { max-width: 38%; }
+            .ledger-amount { font-size: 0.86rem; padding: 0.42rem 0.6rem; }
+            .ledger-date-label { margin-top: 1.25rem; letter-spacing: 0.03em; }
             #budget-modal .bottom-sheet, #input-modal .bottom-sheet { width: 100%; border-radius: 1.2rem 1.2rem 0 0; max-height: 85vh; }
             #budget-modal .relative, #input-modal .relative { max-height: 75vh; overflow-y: auto; }
             #auth-modal, #security-modal { align-items: flex-end; padding: 0; }
@@ -168,8 +280,34 @@
             #export-modal .relative { width: calc(100% - 32px); max-width: none; border-radius: 1rem; }
             #cat-modal { align-items: flex-end; padding: 0; }
             #cat-modal .relative { width: 100%; max-width: none; border-radius: 1.5rem 1.5rem 0 0; max-height: 88vh; overflow-y: auto; }
+            #cat-selector { gap: 0.5rem; padding-bottom: 0.4rem; }
+            #cat-selector button { min-width: 4.2rem; padding: 0.75rem 0.65rem; border-radius: 1rem; }
+            #cat-manage-list { max-height: 38vh; }
+            #cat-modal .cat-icon-pick { width: 2.75rem; height: 2.75rem; border-radius: 1rem; }
+            #cat-modal .grid.grid-cols-\[72px_1fr\] { grid-template-columns: 4rem 1fr; gap: 0.65rem; }
             #budget-input, #f-amount { font-size: 1.25rem; }
-            .fixed.bottom-8 { bottom: env(safe-area-inset-bottom, 8px); }
+            .fixed.bottom-8 { bottom: max(env(safe-area-inset-bottom), 0.75rem); }
+            .fixed.bottom-8 label,
+            .fixed.bottom-8 button { height: 3.65rem; border-radius: 1rem; }
+            .fixed.bottom-8 label { width: 3.65rem; }
+        }
+
+        @media (max-width: 380px) {
+            .main-card.improved { padding: 1.15rem; }
+            .main-card.improved .grid.grid-cols-2 { gap: 0.55rem; }
+            .metric-tile { padding: 0.65rem; }
+            #quick-insight { grid-template-columns: 1fr; }
+            .ledger-row { flex-direction: column; }
+            .ledger-open { width: 100%; }
+            .ledger-actions {
+                width: 100%;
+                max-width: none;
+                flex-direction: row !important;
+                justify-content: space-between;
+                align-items: center !important;
+                padding-left: 3.15rem;
+            }
+            .ledger-amount { text-align: left; }
         }
     </style>
 </head>
@@ -543,14 +681,19 @@
                 <div id="system-log-list" class="space-y-3"></div>
             </section>
 
-            <section id="notice-compose-section" class="border-t border-slate-100 pt-8">
-                <h3 class="text-sm font-black text-slate-700 mb-4">업데이트 공지 작성</h3>
-                <div class="space-y-3">
-                    <input id="notice-title" type="text" maxlength="40" placeholder="공지 제목"
-                        class="w-full p-4 rounded-2xl bg-slate-50 border border-slate-100 outline-none font-bold focus:bg-white focus:ring-2 focus:ring-indigo-500/20">
-                    <textarea id="notice-body" rows="5" maxlength="600" placeholder="업데이트 내용을 적어주세요."
-                        class="w-full p-4 rounded-2xl bg-slate-50 border border-slate-100 outline-none text-sm font-medium resize-none focus:bg-white focus:ring-2 focus:ring-indigo-500/20"></textarea>
-                    <button onclick="App.actions.publishNotice()" class="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold active-push">공지 등록</button>
+            <section class="border-t border-slate-100 pt-8">
+                <div id="notice-compose-section" class="mb-5">
+                    <h3 class="text-sm font-black text-slate-700 mb-4">&#50629;&#45936;&#51060;&#53944; &#44277;&#51648; &#51089;&#49457;</h3>
+                    <div class="space-y-3">
+                        <input id="notice-title" type="text" maxlength="40" placeholder="&#44277;&#51648; &#51228;&#47785;"
+                            class="w-full p-4 rounded-2xl bg-slate-50 border border-slate-100 outline-none font-bold focus:bg-white focus:ring-2 focus:ring-indigo-500/20">
+                        <textarea id="notice-body" rows="5" maxlength="600" placeholder="&#50629;&#45936;&#51060;&#53944; &#45236;&#50857;&#51012; &#51201;&#50612;&#51452;&#49464;&#50836;."
+                            class="w-full p-4 rounded-2xl bg-slate-50 border border-slate-100 outline-none text-sm font-medium resize-none focus:bg-white focus:ring-2 focus:ring-indigo-500/20"></textarea>
+                        <button onclick="App.actions.publishNotice()" class="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold active-push">&#44277;&#51648; &#46321;&#47197;</button>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-sm font-black text-slate-700">&#50629;&#45936;&#51060;&#53944; &#44277;&#51648;</h3>
                 </div>
                 <div id="notice-list" class="space-y-3 mt-5"></div>
             </section>
@@ -659,7 +802,7 @@
                     document.getElementById('f-date').valueAsDate = new Date();
                     
                     lucide.createIcons();
-                    this.state.user = null;
+                    this.actions.restoreSavedSession();
                     this.state.authReady = true;
 
                     await this.actions.refreshSecureData();
@@ -673,6 +816,11 @@
                 storageKey(key) {
                     const id = App.state.user ? App.state.user.id : 'guest';
                     return `sb_${id}_${key}`;
+                },
+
+                usernameStorageKey(key) {
+                    const username = App.state.user ? App.actions.currentUsername() : 'guest';
+                    return `sb_${username}_${key}`;
                 },
 
                 normalizeLoginId(value) {
@@ -716,6 +864,48 @@
 
                 currentUsername() {
                     return App.state.user ? String(App.state.user.username || App.state.user.email || 'guest') : 'guest';
+                },
+
+                saveSession() {
+                    if (!App.state.user) return;
+                    const session = {
+                        id: App.state.user.id,
+                        username: App.state.user.username || App.state.user.email,
+                        legacyMode: !!App.state.legacyMode,
+                        savedAt: new Date().toISOString()
+                    };
+                    localStorage.setItem('sb_active_account_session', JSON.stringify(session));
+                },
+
+                restoreSavedSession() {
+                    try {
+                        const session = JSON.parse(localStorage.getItem('sb_active_account_session') || 'null');
+                        if (!session || !session.id || !session.username) {
+                            App.state.user = null;
+                            App.state.legacyMode = false;
+                            return false;
+                        }
+                        App.state.user = {
+                            id: session.id,
+                            username: session.username,
+                            email: session.username,
+                            isRestoredSession: true,
+                            isLegacyLocal: !!session.legacyMode
+                        };
+                        App.state.legacyMode = !!session.legacyMode;
+                        App.state.authPassword = '';
+                        App.state.encryptionKey = null;
+                        return true;
+                    } catch (e) {
+                        localStorage.removeItem('sb_active_account_session');
+                        App.state.user = null;
+                        App.state.legacyMode = false;
+                        return false;
+                    }
+                },
+
+                clearSession() {
+                    localStorage.removeItem('sb_active_account_session');
                 },
 
                 isOwnLedgerItem(item) {
@@ -874,6 +1064,7 @@
                         };
                         App.state.authPassword = password;
                         App.state.encryptionKey = await App.actions.deriveEncryptionKey(password);
+                        App.actions.saveSession();
 
                         App.ui.closeAuthModal();
                         App.ui.renderAuthState();
@@ -893,12 +1084,14 @@
                 },
 
                 async signOut() {
+                    App.actions.clearSession();
                     App.state.authPassword = '';
                     App.state.encryptionKey = null;
                     App.state.legacyMode = false;
                     App.state.user = null;
                     App.state.items = [];
                     App.state.displayItems = [];
+                    App.state.systemLogs = [];
                     App.ui.renderList();
                     App.ui.renderAuthState();
                     App.ui.showToast('로그아웃되었습니다.', 2200, false);
@@ -914,6 +1107,7 @@
                     };
                     App.state.authPassword = password;
                     App.state.encryptionKey = null;
+                    App.actions.saveSession();
                     App.ui.closeAuthModal();
                     App.ui.renderAuthState();
                     await App.actions.claimAllLedgerRowsForAkdhs();
@@ -1208,32 +1402,104 @@
                     App.state.items = await Promise.all(merged.map(row => App.actions.decryptRecord(row)));
                     App.actions.filter();
                 },
-                async fetchCategories() {
-                    const { data, error } = await App.state.sb
-                        .from('ledger_categories')
-                        .select('id,name,icon,sort_order')
-                        .or(`user_id.is.null,user_id.eq.${App.state.user.id}`)
-                        .order('sort_order', { ascending: true })
-                        .order('created_at', { ascending: true });
+                defaultCategories() {
+                    return [
+                        { id: 'default-food', name: '식비', icon: '🍔' },
+                        { id: 'default-life', name: '생활', icon: '🛒' },
+                        { id: 'default-traffic', name: '교통', icon: '🚌' },
+                        { id: 'default-home', name: '주거', icon: '🏠' },
+                        { id: 'default-income', name: '수입', icon: '💰' }
+                    ];
+                },
 
-                    if (error) {
-                        console.error('카테고리 DB 로드 에러:', error);
-                        App.ui.showToast('카테고리 테이블을 먼저 만들어주세요.', 3500, false);
-                        return;
+                categoryStorageKey() {
+                    return App.actions.usernameStorageKey('ledger_categories');
+                },
+
+                normalizeCategories(categories) {
+                    const source = Array.isArray(categories) && categories.length ? categories : App.actions.defaultCategories();
+                    const seen = new Set();
+                    return source
+                        .map((cat, index) => ({
+                            id: String(cat.id || `local-cat-${Date.now()}-${index}`),
+                            name: String(cat.name || '카테고리').trim(),
+                            icon: String(cat.icon || '📄').trim() || '📄'
+                        }))
+                        .filter(cat => {
+                            const key = cat.name.toLowerCase();
+                            if (!cat.name || seen.has(key)) return false;
+                            seen.add(key);
+                            return true;
+                        });
+                },
+
+                applyCategories(categories) {
+                    App.state.categories = App.actions.normalizeCategories(categories);
+                    if (!App.state.categories.some(cat => cat.id === App.state.selectedCat)) {
+                        App.state.selectedCat = App.state.categories[0] ? App.state.categories[0].id : 'default-food';
                     }
+                    localStorage.setItem(App.actions.categoryStorageKey(), JSON.stringify(App.state.categories));
+                },
 
-                    if (data && data.length > 0) {
-                        App.state.categories = data.map(cat => ({
-                            id: cat.id,
-                            name: cat.name,
-                            icon: cat.icon
-                        }));
-                        if (!App.state.categories.some(cat => cat.id === App.state.selectedCat)) {
-                            App.state.selectedCat = App.state.categories[0].id;
-                        }
+                loadLocalCategories() {
+                    try {
+                        return App.actions.normalizeCategories(JSON.parse(localStorage.getItem(App.actions.categoryStorageKey()) || '[]'));
+                    } catch (e) {
+                        return App.actions.defaultCategories();
                     }
                 },
 
+                async fetchCategories() {
+                    if (!App.actions.requireAuth()) return;
+                    const localCategories = App.actions.loadLocalCategories();
+
+                    try {
+                        const { data, error } = await App.state.sb
+                            .from('ledger_categories')
+                            .select('id,name,icon,sort_order')
+                            .eq('user_id', App.state.user.id)
+                            .order('sort_order', { ascending: true })
+                            .order('created_at', { ascending: true });
+
+                        if (error) throw error;
+
+                        if (data && data.length > 0) {
+                            App.actions.applyCategories(data);
+                            return;
+                        }
+
+                        App.actions.applyCategories(localCategories);
+                        await App.actions.seedDefaultCategories();
+                    } catch (e) {
+                        console.warn('category db unavailable, using local categories:', e);
+                        App.actions.applyCategories(localCategories);
+                    }
+                },
+
+                async seedDefaultCategories() {
+                    const localCategories = App.actions.loadLocalCategories();
+                    App.actions.applyCategories(localCategories);
+
+                    const rows = App.state.categories.map((cat, index) => ({
+                        id: cat.id.startsWith('default-') ? `${App.state.user.id}-${cat.id}` : cat.id,
+                        name: cat.name,
+                        icon: cat.icon,
+                        sort_order: index + 1,
+                        user_id: App.state.user.id
+                    }));
+
+                    try {
+                        const { data, error } = await App.state.sb
+                            .from('ledger_categories')
+                            .upsert(rows, { onConflict: 'id' })
+                            .select('id,name,icon,sort_order')
+                            .order('sort_order', { ascending: true });
+                        if (error) throw error;
+                        if (data && data.length) App.actions.applyCategories(data);
+                    } catch (e) {
+                        console.warn('default category seed skipped:', e);
+                    }
+                },
                 isMissingTableError(error) {
                     return error && (
                         error.code === 'PGRST205' ||
@@ -1251,6 +1517,8 @@
                         message: row.message,
                         type: row.type || 'info',
                         meta: row.meta || null,
+                        user_id: row.user_id || null,
+                        username: row.username || '',
                         time: row.created_at || row.time || new Date().toISOString()
                     };
                 },
@@ -1283,76 +1551,97 @@
                 },
 
                 async fetchSystemCenter() {
-                    if (!App.state.systemDbAvailable) return;
+                    const logKey = App.actions.usernameStorageKey('system_logs');
+                    App.state.systemLogs = JSON.parse(localStorage.getItem(logKey) || '[]');
 
                     try {
-                        const [logsRes, noticesRes] = await Promise.all([
-                            App.state.sb.from('system_logs').select('*').order('created_at', { ascending: false }).limit(80),
-                            App.state.sb.from('update_notices').select('*').order('created_at', { ascending: false }).limit(30)
-                        ]);
-
-                        if (logsRes.error || noticesRes.error) {
-                            const error = logsRes.error || noticesRes.error;
-                            if (App.actions.isMissingTableError(error)) App.state.systemDbAvailable = false;
-                            throw error;
+                        const noticesRes = await App.state.sb
+                            .from('update_notices')
+                            .select('*')
+                            .order('created_at', { ascending: false })
+                            .limit(30);
+                        if (!noticesRes.error) {
+                            App.state.notices = (noticesRes.data || []).map(App.actions.normalizeNotice);
+                            localStorage.setItem('sb_update_notices', JSON.stringify(App.state.notices));
                         }
-
-                        App.state.systemLogs = (logsRes.data || []).map(App.actions.normalizeLog);
-                        App.state.notices = (noticesRes.data || []).map(App.actions.normalizeNotice);
-                        localStorage.setItem('sb_system_logs', JSON.stringify(App.state.systemLogs));
-                        localStorage.setItem('sb_update_notices', JSON.stringify(App.state.notices));
                     } catch (e) {
-                        console.warn('시스템 알림 DB 로드 실패, 로컬 저장소를 사용합니다:', e);
-                        App.state.systemDbAvailable = false;
+                        console.warn('notice load failed, using local notices:', e);
+                    }
+
+                    if (!App.state.systemDbAvailable || !App.state.user) return;
+
+                    try {
+                        let logsRes = await App.state.sb
+                            .from('system_logs')
+                            .select('*')
+                            .eq('user_id', App.state.user.id)
+                            .order('created_at', { ascending: false })
+                            .limit(80);
+
+                        if (logsRes.error) {
+                            console.warn('account log filter failed, using local account logs:', logsRes.error);
+                            App.state.systemLogs = JSON.parse(localStorage.getItem(logKey) || '[]');
+                        } else {
+                            App.state.systemLogs = (logsRes.data || []).map(App.actions.normalizeLog);
+                            localStorage.setItem(logKey, JSON.stringify(App.state.systemLogs));
+                        }
+                    } catch (e) {
+                        console.warn('system log load failed, using local account logs:', e);
+                        App.state.systemLogs = JSON.parse(localStorage.getItem(logKey) || '[]');
                     }
                 },
-
                 async addSystemLog(message, type = 'info', meta = null) {
+                    const logKey = App.actions.usernameStorageKey('system_logs');
                     const log = {
                         id: Date.now(),
                         message,
                         type,
                         meta,
+                        user_id: App.state.user ? App.state.user.id : null,
+                        username: App.state.user ? App.actions.currentUsername() : 'guest',
                         time: new Date().toISOString()
                     };
                     App.state.systemLogs.unshift(log);
                     App.state.systemLogs = App.state.systemLogs.slice(0, 80);
-                    localStorage.setItem('sb_system_logs', JSON.stringify(App.state.systemLogs));
+                    localStorage.setItem(logKey, JSON.stringify(App.state.systemLogs));
                     App.ui.renderSystemCenter();
 
-                    if (App.state.systemDbAvailable) {
+                    if (App.state.systemDbAvailable && App.state.user) {
+                        const payload = { message, type, meta, user_id: App.state.user.id, username: App.actions.currentUsername() };
                         const { data, error } = await App.state.sb
                             .from('system_logs')
-                            .insert([{ message, type, meta }])
+                            .insert([payload])
                             .select('*')
                             .single();
 
                         if (error) {
                             if (App.actions.isMissingTableError(error)) App.state.systemDbAvailable = false;
-                            console.warn('시스템 로그 DB 저장 실패:', error);
+                            console.warn('system log save failed:', error);
                             return;
                         }
 
                         App.state.systemLogs = [App.actions.normalizeLog(data), ...App.state.systemLogs.filter(item => item.id !== log.id)].slice(0, 80);
-                        localStorage.setItem('sb_system_logs', JSON.stringify(App.state.systemLogs));
+                        localStorage.setItem(logKey, JSON.stringify(App.state.systemLogs));
                         App.ui.renderSystemCenter();
                     }
                 },
-
                 async clearSystemLogs() {
+                    const logKey = App.actions.usernameStorageKey('system_logs');
                     App.state.systemLogs = [];
-                    localStorage.setItem('sb_system_logs', '[]');
+                    localStorage.setItem(logKey, '[]');
                     App.ui.renderSystemCenter();
 
-                    if (App.state.systemDbAvailable) {
-                        const { error } = await App.state.sb.from('system_logs').delete().not('id', 'is', null);
+                    if (App.state.systemDbAvailable && App.state.user) {
+                        const { error } = await App.state.sb
+                            .from('system_logs')
+                            .delete()
+                            .eq('user_id', App.state.user.id);
                         if (error) {
                             if (App.actions.isMissingTableError(error)) App.state.systemDbAvailable = false;
-                            console.warn('시스템 로그 DB 삭제 실패:', error);
+                            console.warn('system log delete failed:', error);
                         }
                     }
                 },
-
                 async publishNotice() {
                     if (!App.actions.isNoticeAdmin()) return App.ui.showToast('공지 작성은 akdhs323 계정만 가능합니다.', 2500, false);
                     const titleEl = document.getElementById('notice-title');
@@ -1597,10 +1886,12 @@
                     if (!App.actions.requireAuth()) return;
                     if (event) event.preventDefault();
                     const btn = document.getElementById('btn-add-category');
-                    const icon = document.getElementById('new-cat-icon').value.trim() || '📄';
-                    const name = document.getElementById('new-cat-name').value.trim();
-                    if(!name) return alert("카테고리 이름을 입력하세요.");
-                    if (App.state.categories.some(cat => cat.name === name)) {
+                    const iconInput = document.getElementById('new-cat-icon');
+                    const nameInput = document.getElementById('new-cat-name');
+                    const icon = (iconInput ? iconInput.value.trim() : '') || '📄';
+                    const name = (nameInput ? nameInput.value.trim() : '');
+                    if (!name) return App.ui.showToast('카테고리 이름을 입력해주세요.', 2500, false);
+                    if (App.state.categories.some(cat => cat.name.toLowerCase() === name.toLowerCase())) {
                         return App.ui.showToast('이미 같은 이름의 카테고리가 있습니다.', 2500, false);
                     }
 
@@ -1610,41 +1901,38 @@
                         btn.innerText = '추가 중...';
                     }
 
-                    const newObj = {
-                        id: 'c' + Date.now(),
+                    const localCategory = {
+                        id: `local-${Date.now()}`,
                         name,
-                        icon,
-                        sort_order: App.state.categories.length + 1,
-                        user_id: App.state.user.id
+                        icon
                     };
+                    let savedCategory = localCategory;
 
-                    const { data, error } = await App.state.sb
-                        .from('ledger_categories')
-                        .insert([newObj])
-                        .select('id,name,icon,sort_order')
-                        .single();
-
-                    if (error) {
-                        console.error('카테고리 DB 추가 실패:', error);
-                        if (btn) {
-                            btn.disabled = false;
-                            btn.classList.remove('opacity-60');
-                            btn.innerText = '카테고리 추가';
-                        }
-                        return App.ui.showToast('카테고리 추가에 실패했습니다. DB 테이블을 확인해주세요.', 3500, false);
+                    try {
+                        const payload = {
+                            id: localCategory.id,
+                            name,
+                            icon,
+                            sort_order: App.state.categories.length + 1,
+                            user_id: App.state.user.id
+                        };
+                        const { data, error } = await App.state.sb
+                            .from('ledger_categories')
+                            .insert([payload])
+                            .select('id,name,icon,sort_order')
+                            .single();
+                        if (error) throw error;
+                        if (data) savedCategory = { id: data.id, name: data.name, icon: data.icon };
+                    } catch (e) {
+                        console.warn('category db insert skipped, saved locally:', e);
                     }
 
-                    App.state.categories.push({
-                        id: data.id,
-                        name: data.name,
-                        icon: data.icon
-                    });
-                    App.state.selectedCat = data.id;
-
+                    App.actions.applyCategories([...App.state.categories, savedCategory]);
+                    App.state.selectedCat = savedCategory.id;
                     App.ui.renderCatSelectors();
                     App.ui.renderCatManageList();
-                    document.getElementById('new-cat-icon').value = '';
-                    document.getElementById('new-cat-name').value = '';
+                    if (iconInput) iconInput.value = '';
+                    if (nameInput) nameInput.value = '';
                     if (btn) {
                         btn.disabled = false;
                         btn.classList.remove('opacity-60');
@@ -1655,25 +1943,27 @@
 
                 async removeCategory(id) {
                     if (!App.actions.requireAuth()) return;
-                    if(App.state.categories.length <= 1) return alert("최소 1개의 카테고리는 필요합니다.");
-                    const { error } = await App.state.sb.from('ledger_categories').delete().eq('id', id).eq('user_id', App.state.user.id);
-                    if (error) {
-                        console.error('카테고리 DB 삭제 실패:', error);
-                        return App.ui.showToast('카테고리 삭제에 실패했습니다.', 3000, false);
+                    if (App.state.categories.length <= 1) return App.ui.showToast('최소 1개의 카테고리는 필요합니다.', 2500, false);
+
+                    try {
+                        const { error } = await App.state.sb
+                            .from('ledger_categories')
+                            .delete()
+                            .eq('id', id)
+                            .eq('user_id', App.state.user.id);
+                        if (error) throw error;
+                    } catch (e) {
+                        console.warn('category db delete skipped, removed locally:', e);
                     }
 
-                    App.state.categories = App.state.categories.filter(c => c.id !== id);
-                    if (App.state.selectedCat === id) {
-                        App.state.selectedCat = App.state.categories[0].id;
-                    }
+                    App.actions.applyCategories(App.state.categories.filter(c => String(c.id) !== String(id)));
                     App.ui.renderCatSelectors();
                     App.ui.renderCatManageList();
                     App.ui.showToast('카테고리가 삭제되었습니다.', 2500, false);
                 },
-
                 async loadBudgetSetting() {
                     if (!App.actions.requireAuth()) return;
-                    const budgetKey = `monthly_budget_${App.state.user.id}`;
+                    const budgetKey = `monthly_budget_${App.actions.currentUsername()}`;
                     try {
                         const rpc = await App.state.sb.rpc('get_account_setting', {
                             p_account_id: App.state.user.id,
@@ -1715,7 +2005,7 @@
 
                 async saveBudgetSetting() {
                     if (!App.actions.requireAuth()) return { message: 'auth-required' };
-                    const budgetKey = `monthly_budget_${App.state.user.id}`;
+                    const budgetKey = `monthly_budget_${App.actions.currentUsername()}`;
                     // If DB already known to be unavailable, skip network call
                     if (!App.state.dbAvailable) {
                         localStorage.setItem(App.actions.storageKey('ledger_budget'), String(App.state.budget));
@@ -1834,11 +2124,12 @@
 
                 exportCSV() {
                     if (!App.actions.requireAuth()) return;
-                    if (App.state.items.length === 0) return alert('다운로드할 내역이 없습니다.');
+                    const ownItems = App.state.items.filter(item => App.actions.isOwnLedgerItem(item));
+                    if (ownItems.length === 0) return alert('다운로드할 내역이 없습니다.');
 
-                    const totalBalance = App.state.items.reduce((s, it) => s + (it.amount || 0), 0);
-                    const income = App.state.items.filter(i => i.amount > 0).reduce((sum, item) => sum + item.amount, 0);
-                    const expense = App.state.items.filter(i => i.amount < 0).reduce((sum, item) => sum + Math.abs(item.amount), 0);
+                    const totalBalance = ownItems.reduce((s, it) => s + (it.amount || 0), 0);
+                    const income = ownItems.filter(i => i.amount > 0).reduce((sum, item) => sum + item.amount, 0);
+                    const expense = ownItems.filter(i => i.amount < 0).reduce((sum, item) => sum + Math.abs(item.amount), 0);
                     const remain = App.state.budget - expense;
 
                     const meta = [
@@ -1852,7 +2143,7 @@
                     ];
 
                     let csv = meta.map(r => r.join(',')).join('\n') + '\n\n날짜,ID,카테고리,내역,금액,타입\n';
-                    App.state.items.forEach(r => {
+                    ownItems.forEach(r => {
                         const parts = (r.description || '').split(' ');
                         const icon = parts[0] && parts[0].length <= 2 ? parts[0] : '';
                         const desc = parts.slice(icon ? 1 : 0).join(' ') || r.description || '';
@@ -1880,11 +2171,12 @@
 
                 exportJSON() {
                     if (!App.actions.requireAuth()) return;
-                    if (App.state.items.length === 0) return alert('다운로드할 내역이 없습니다.');
+                    const ownItems = App.state.items.filter(item => App.actions.isOwnLedgerItem(item));
+                    if (ownItems.length === 0) return alert('다운로드할 내역이 없습니다.');
 
-                    const income = App.state.items.filter(i => i.amount > 0).reduce((sum, item) => sum + item.amount, 0);
-                    const expense = App.state.items.filter(i => i.amount < 0).reduce((sum, item) => sum + Math.abs(item.amount), 0);
-                    const totalBalance = App.state.items.reduce((s, it) => s + (it.amount || 0), 0);
+                    const income = ownItems.filter(i => i.amount > 0).reduce((sum, item) => sum + item.amount, 0);
+                    const expense = ownItems.filter(i => i.amount < 0).reduce((sum, item) => sum + Math.abs(item.amount), 0);
+                    const totalBalance = ownItems.reduce((s, it) => s + (it.amount || 0), 0);
                     const summary = {
                         createdAt: new Date().toLocaleString('ko-KR'),
                         income,
@@ -1894,7 +2186,7 @@
                         totalBalance
                     };
 
-                    const records = App.state.items.map(r => {
+                    const records = ownItems.map(r => {
                         const parts = (r.description || '').split(' ');
                         const icon = parts[0] && parts[0].length <= 2 ? parts[0] : '';
                         const desc = parts.slice(icon ? 1 : 0).join(' ') || r.description || '';
@@ -2060,21 +2352,21 @@
 
                         const html = `
                             <div class="ledger-card bg-white p-4 sm:p-5 rounded-3xl shadow-sm border border-slate-100 list-item-anim active:scale-[0.98] transition-all" style="animation-delay: ${idx * 0.04}s; --ledger-accent: ${accent};">
-                                <div class="flex items-center gap-3">
-                                    <button onclick="${isOwner ? `App.ui.openEdit(${JSON.stringify(item).replace(/"/g, '&quot;')})` : ''}" class="min-w-0 flex-1 flex items-center gap-3 text-left ${isOwner ? 'active-push' : 'cursor-default'}">
+                                <div class="ledger-row">
+                                    <button onclick="${isOwner ? `App.ui.openEdit(${JSON.stringify(item).replace(/"/g, '&quot;')})` : ''}" class="ledger-open ${isOwner ? 'active-push' : 'cursor-default'}">
                                         <div class="shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center bg-slate-50 text-xl shadow-inner">${icon}</div>
                                         <div class="min-w-0 flex-1">
-                                            <div class="flex items-center gap-2 mb-1">
+                                            <div class="ledger-meta">
                                                 <span class="px-2 py-0.5 rounded-full bg-slate-100 text-[10px] font-black text-slate-500">${typeText}</span>
                                                 ${isOwner ? '' : `<span class="px-2 py-0.5 rounded-full bg-indigo-50 text-[10px] font-black text-indigo-500">${ownerName} 공유</span>`}
                                                 <span class="text-[10px] font-bold text-slate-400 tabular-nums">#${item.id}</span>
                                             </div>
-                                            <h4 class="font-black text-slate-800 text-[15px] leading-tight truncate">${desc}</h4>
+                                            <h4 class="ledger-desc font-black text-slate-800 text-[15px] leading-tight">${desc}</h4>
                                         </div>
                                     </button>
 
-                                    <div class="shrink-0 flex flex-col items-end gap-2">
-                                        <p class="px-3 py-1.5 rounded-2xl font-black text-[15px] tabular-nums ${amountColor}">
+                                    <div class="ledger-actions flex flex-col items-end gap-2">
+                                        <p class="ledger-amount px-3 py-1.5 rounded-2xl font-black text-[15px] tabular-nums ${amountColor}">
                                             ${amountPrefix}${Math.abs(item.amount).toLocaleString()}
                                         </p>
                                         ${isOwner ? `<button onclick="App.actions.delete(${item.id})" class="w-9 h-9 rounded-xl bg-slate-50 text-rose-300 flex items-center justify-center active-push hover:text-rose-500">
@@ -2262,10 +2554,10 @@
                         const isSel = App.state.selectedCat === cat.id;
                         const btn = `
                             <button onclick="App.ui.selectCat('${cat.id}')" 
-                                class="flex-shrink-0 px-5 py-3 rounded-2xl border transition-all flex items-center gap-2
+                                class="flex-shrink-0 px-4 py-3 rounded-2xl border transition-all flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2
                                 ${isSel ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg' : 'bg-white border-slate-100 text-slate-500'}">
                                 <span class="text-lg">${cat.icon}</span>
-                                <span class="text-xs font-bold">${cat.name}</span>
+                                <span class="text-xs font-bold leading-tight text-center break-keep">${App.ui.escapeHTML(cat.name)}</span>
                             </button>
                         `;
                         container.insertAdjacentHTML('beforeend', btn);
@@ -2286,12 +2578,12 @@
                     }
                     App.state.categories.forEach(cat => {
                         container.insertAdjacentHTML('beforeend', `
-                            <div class="flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                            <div class="cat-manage-row flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-100">
                                 <div class="flex items-center gap-3 min-w-0">
                                     <span class="w-11 h-11 shrink-0 rounded-2xl bg-white flex items-center justify-center text-xl shadow-sm">${cat.icon}</span>
                                     <div class="min-w-0">
-                                        <span class="block font-black text-slate-700 text-sm truncate">${cat.name}</span>
-                                        <span class="block text-[10px] font-bold text-slate-400">${cat.id}</span>
+                                        <span class="block font-black text-slate-700 text-sm break-words">${App.ui.escapeHTML(cat.name)}</span>
+                                        <span class="block text-[10px] font-bold text-slate-400 truncate">${App.ui.escapeHTML(String(cat.id))}</span>
                                     </div>
                                 </div>
                                 <button onclick="App.actions.removeCategory('${cat.id}')" class="shrink-0 w-10 h-10 rounded-xl bg-white text-rose-300 hover:text-rose-500 active-push flex items-center justify-center">
@@ -2579,7 +2871,11 @@
                     const ctx = document.getElementById('main-chart').getContext('2d');
                     const now = new Date();
                     const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-                    const expenses = App.state.items.filter(i => i.amount < 0 && String(i.date || '').slice(0, 7) === monthKey);
+                    const expenses = App.state.items.filter(i =>
+                        App.actions.isOwnLedgerItem(i) &&
+                        i.amount < 0 &&
+                        String(i.date || '').slice(0, 7) === monthKey
+                    );
                     const stats = {};
                     
                     expenses.forEach(e => {
